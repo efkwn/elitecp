@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.4.0
+
+- Arayüz baştan sona **Atelier UI** görsel katmanına taşındı; backend veya runtime ağırlığı artırılmadı.
+- Harici font, CSS framework, chart kütüphanesi veya icon CDN'i eklenmedi.
+- Dashboard için yeni kontrol merkezi hero alanı, sistem sağlık özeti ve daha kompakt bot istatistik şeridi.
+- CPU/RAM/Disk/Uptime kartları daha okunaklı tipografi, mikro grafikler ve canlı durum göstergeleriyle yenilendi.
+- Bot kartları, durum rozetleri ve kaynak satırları yeniden tasarlandı.
+- Bot detay ekranı yeni instance hero, segment tab düzeni ve premium kaynak/pipeline kartlarına geçti.
+- Console görünümü daha profesyonel terminal chrome, daha sıkı toolbar ve mobil optimizasyon aldı.
+- Mobilde Dashboard / Botlar / Yeni Bot için hafif sabit bottom dock eklendi.
+- Login ekranı, dialoglar, formlar, file manager, focus state ve reduced-motion erişilebilirliği görsel olarak iyileştirildi.
+- Tüm yeni görseller CSS + mevcut local SVG sprite ile çalışır; yeni runtime dependency yoktur.
+
 ## v0.3.0
 
 - Dashboard'a VPS/host kaynak izleme kartları eklendi.

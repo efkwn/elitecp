@@ -2,7 +2,7 @@
 
 Hafif, sade ve Docker tabanlı Discord / Telegram bot hosting kontrol paneli.
 
-> **v0.3.0** — Python 3.12 ve Node.js 22 botları hedefler. Startup pipeline ve izole dependency yapısına ek olarak Dashboard artık VPS CPU, RAM, disk ve uptime verilerini canlı mini grafiklerle gösterir.
+> **v0.4.0** — Python 3.12 ve Node.js 22 botları hedefler. Startup pipeline, izole dependency yapısı ve VPS metriklerine ek olarak arayüz artık “Atelier UI” tasarım katmanına sahiptir; buna rağmen harici frontend framework/font/chart bağımlılığı yoktur.
 
 ## Özellikler
 
@@ -23,10 +23,11 @@ Hafif, sade ve Docker tabanlı Discord / Telegram bot hosting kontrol paneli.
 - ENV / token yönetimi
 - Dosya yöneticisi ve metin editörü
 - ZIP yükleme ve güvenli açma
-- Açık tema, local SVG icon set ve mobil uyumlu arayüz
+- Atelier UI açık tema, local SVG icon set, mobil bottom dock ve tamamen responsive arayüz
 - Debian 11 için interaktif tek-komut kurulum
 - Mevcut CloudPanel'e dokunmadan `127.0.0.1:9080` üzerinde çalışma
 - CloudPanel CLI ile reverse proxy ve Let's Encrypt kurulumu
+- Sıfır harici UI dependency: vanilla HTML/CSS/JS, local SVG, hafif inline sparklines
 
 ## Startup pipeline
 

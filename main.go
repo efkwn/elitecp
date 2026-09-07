@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-const version = "0.3.0"
+const version = "0.4.0"
 
 type Config struct {
 	ListenAddr string

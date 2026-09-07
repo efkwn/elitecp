@@ -49,6 +49,7 @@
       <div class="brand sidebar-brand">
         <span class="brand-mark"><svg class="icon"><use href="/icons.svg#logo"></use></svg></span>
         <div><span>eLite CP</span><small>Bot Control Panel</small></div>
+        <span class="version-pill">0.4</span>
       </div>
 
       <nav class="nav">
@@ -77,6 +78,12 @@
       </header>
       <div id="content" class="content"></div>
     </main>
+
+    <nav class="mobile-dock" aria-label="Mobil navigasyon">
+      <button class="mobile-dock-item active" data-view="dashboard"><svg class="icon"><use href="/icons.svg#dashboard"></use></svg><span>Panel</span></button>
+      <button class="mobile-dock-item" data-view="bots"><svg class="icon"><use href="/icons.svg#bot"></use></svg><span>Botlar</span></button>
+      <button class="mobile-dock-new" id="mobileNewBot" aria-label="Yeni Bot"><svg class="icon"><use href="/icons.svg#plus"></use></svg></button>
+    </nav>
   </div>
 
   <dialog id="botDialog" class="dialog">

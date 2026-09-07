@@ -153,6 +153,14 @@ function wireStatic() {
   }));
   $('#mobileMenu').addEventListener('click', openSidebar);
   $('#sidebarBackdrop').addEventListener('click', closeSidebar);
+  $$('.mobile-dock-item[data-view]').forEach(b => b.addEventListener('click', () => {
+    state.view = b.dataset.view;
+    state.bot = null;
+    stopConsole();
+    setActiveNav();
+    render();
+  }));
+  $('#mobileNewBot')?.addEventListener('click', openNewBot);
 }
 
 function openSidebar() {
@@ -195,10 +203,18 @@ function showLogin() {
 function showApp() {
   $('#loginView').classList.add('hidden');
   $('#appView').classList.remove('hidden');
-  $('#userChip').textContent = state.user?.username || 'admin';
+  const username = state.user?.username || 'admin';
+  $('#userChip').innerHTML = `<span class="user-avatar">${esc(username.slice(0, 1).toUpperCase())}</span><span>${esc(username)}</span>`;
+  syncMobileDock();
 }
+
+function syncMobileDock() {
+  $$('.mobile-dock-item[data-view]').forEach(x => x.classList.toggle('active', !state.bot && x.dataset.view === state.view));
+}
+
 function setActiveNav() {
   $$('.nav-item[data-view]').forEach(x => x.classList.toggle('active', x.dataset.view === state.view));
+  syncMobileDock();
 }
 
 async function refreshSystem() {
@@ -243,16 +259,18 @@ function botCards(bots) {
   if (!bots.length) return emptyBots();
   return `<div class="bot-list">${bots.map(b => `
     <article class="bot-card" data-bot="${b.id}" tabindex="0">
+      <div class="bot-card-accent"></div>
       <div class="bot-card-top">
         <div class="bot-ident">
           <div class="bot-icon ${b.runtime === 'node' ? 'node' : ''}">${runtimeShort(b.runtime)}</div>
-          <div style="min-width:0"><p class="bot-name">${esc(b.name)}</p><span class="bot-meta">${runtimeLabel(b.runtime)} · ${b.id}</span></div>
+          <div class="bot-title-wrap"><p class="bot-name">${esc(b.name)}</p><span class="bot-meta">${runtimeLabel(b.runtime)} <i>·</i> ${b.id}</span></div>
         </div>
-        <span class="status ${esc(b.status)}">${statusLabel(b.status)}</span>
+        <span class="status ${esc(b.status)}"><i class="status-dot"></i>${statusLabel(b.status)}</span>
       </div>
       <div class="bot-resources">
-        <span>${icon('memory')} RAM <b>${b.memory_mb} MB</b></span>
-        <span>${icon('cpu')} CPU <b>${b.cpus}</b></span>
+        <span>${icon('memory')}<span>RAM</span><b>${b.memory_mb} MB</b></span>
+        <span>${icon('cpu')}<span>CPU</span><b>${b.cpus}</b></span>
+        <span class="bot-open">Yönet ${icon('chevron-right')}</span>
       </div>
     </article>`).join('')}</div>`;
 }
@@ -267,43 +285,41 @@ function wireBotCards() {
 function serverMetricCardsHTML() {
   const m = state.system?.metrics;
   if (!m) {
-    return `<section class="card server-card"><div class="card-head"><h3>Sunucu Kaynakları</h3><span class="muted server-live">Veriler bekleniyor...</span></div><div class="card-body"><div class="empty">Sunucu metrikleri henüz alınamadı.</div></div></section>`;
+    return `<section class="resource-section"><div class="section-head"><div><span class="section-kicker">VPS HEALTH</span><h2>Sunucu kaynakları</h2></div><span class="server-live">Veriler bekleniyor...</span></div><div class="empty resource-empty">Sunucu metrikleri henüz alınamadı.</div></section>`;
   }
   const cpu = clamp(m.cpu_percent);
   const memory = clamp(m.memory_percent);
   const disk = clamp(m.disk_percent);
-  return `<section class="card server-card">
-    <div class="card-head server-card-head">
-      <div><h3>Sunucu Kaynakları</h3><div class="server-host">${esc(m.hostname || 'VPS')} · ${esc(m.os || 'Linux')}</div></div>
-      <span class="server-live"><span class="dot ok"></span> Canlı · 4 sn</span>
+  return `<section class="resource-section">
+    <div class="section-head">
+      <div><span class="section-kicker">VPS HEALTH</span><h2>Sunucu kaynakları</h2><p>${esc(m.hostname || 'VPS')} · ${esc(m.os || 'Linux')}</p></div>
+      <span class="server-live"><span class="live-pulse"></span> Canlı · 4 sn</span>
     </div>
-    <div class="card-body">
-      <div class="server-metrics-grid">
-        <article class="server-metric" data-system-card="cpu">
-          <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('cpu')}</span><span>CPU</span></div><b id="sysCpuValue">${formatPercent(cpu)}</b></div>
-          <div class="server-progress"><span id="sysCpuBar" style="width:${cpu}%"></span></div>
-          <div id="sysCpuGraph" class="server-graph">${sparkline(state.systemHistory.cpu)}</div>
-          <div class="server-metric-foot"><span id="sysCpuSub">${m.cpu_cores || 1} çekirdek</span><span id="sysLoadSub">Load ${Number(m.load_1 || 0).toFixed(2)}</span></div>
-        </article>
-        <article class="server-metric" data-system-card="memory">
-          <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('memory')}</span><span>RAM</span></div><b id="sysRamValue">${formatPercent(memory)}</b></div>
-          <div class="server-progress"><span id="sysRamBar" style="width:${memory}%"></span></div>
-          <div id="sysRamGraph" class="server-graph">${sparkline(state.systemHistory.memory)}</div>
-          <div class="server-metric-foot"><span id="sysRamUsed">${formatBytes(m.memory_used_bytes)} kullanılan</span><span id="sysRamTotal">/ ${formatBytes(m.memory_total_bytes)}</span></div>
-        </article>
-        <article class="server-metric" data-system-card="disk">
-          <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('disk')}</span><span>Disk</span></div><b id="sysDiskValue">${formatPercent(disk)}</b></div>
-          <div class="server-progress"><span id="sysDiskBar" style="width:${disk}%"></span></div>
-          <div id="sysDiskGraph" class="server-graph">${sparkline(state.systemHistory.disk)}</div>
-          <div class="server-metric-foot"><span id="sysDiskUsed">${formatBytes(m.disk_used_bytes)} kullanılan</span><span id="sysDiskTotal">/ ${formatBytes(m.disk_total_bytes)}</span></div>
-        </article>
-        <article class="server-metric uptime-metric" data-system-card="uptime">
-          <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('clock')}</span><span>Uptime</span></div><span class="status running">Online</span></div>
-          <div id="sysUptime" class="uptime-value">${formatUptime(m.uptime_seconds)}</div>
-          <div class="uptime-visual"><span></span><span></span><span></span><span></span><span></span><span></span></div>
-          <div class="server-metric-foot"><span id="sysHost">${esc(m.hostname || 'VPS')}</span><span>${state.system?.docker_ok ? 'Docker hazır' : 'Docker hata'}</span></div>
-        </article>
-      </div>
+    <div class="server-metrics-grid">
+      <article class="server-metric" data-system-card="cpu">
+        <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('cpu')}</span><span>CPU</span></div><b id="sysCpuValue">${formatPercent(cpu)}</b></div>
+        <div class="server-progress"><span id="sysCpuBar" style="width:${cpu}%"></span></div>
+        <div id="sysCpuGraph" class="server-graph">${sparkline(state.systemHistory.cpu)}</div>
+        <div class="server-metric-foot"><span id="sysCpuSub">${m.cpu_cores || 1} çekirdek</span><span id="sysLoadSub">Load ${Number(m.load_1 || 0).toFixed(2)}</span></div>
+      </article>
+      <article class="server-metric" data-system-card="memory">
+        <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('memory')}</span><span>RAM</span></div><b id="sysRamValue">${formatPercent(memory)}</b></div>
+        <div class="server-progress"><span id="sysRamBar" style="width:${memory}%"></span></div>
+        <div id="sysRamGraph" class="server-graph">${sparkline(state.systemHistory.memory)}</div>
+        <div class="server-metric-foot"><span id="sysRamUsed">${formatBytes(m.memory_used_bytes)} kullanılan</span><span id="sysRamTotal">/ ${formatBytes(m.memory_total_bytes)}</span></div>
+      </article>
+      <article class="server-metric" data-system-card="disk">
+        <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('disk')}</span><span>Disk</span></div><b id="sysDiskValue">${formatPercent(disk)}</b></div>
+        <div class="server-progress"><span id="sysDiskBar" style="width:${disk}%"></span></div>
+        <div id="sysDiskGraph" class="server-graph">${sparkline(state.systemHistory.disk)}</div>
+        <div class="server-metric-foot"><span id="sysDiskUsed">${formatBytes(m.disk_used_bytes)} kullanılan</span><span id="sysDiskTotal">/ ${formatBytes(m.disk_total_bytes)}</span></div>
+      </article>
+      <article class="server-metric uptime-metric" data-system-card="uptime">
+        <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('clock')}</span><span>Uptime</span></div><span class="status running"><i class="status-dot"></i>Online</span></div>
+        <div id="sysUptime" class="uptime-value">${formatUptime(m.uptime_seconds)}</div>
+        <div class="uptime-track"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="server-metric-foot"><span id="sysHost">${esc(m.hostname || 'VPS')}</span><span>${state.system?.docker_ok ? 'Docker hazır' : 'Docker hata'}</span></div>
+      </article>
     </div>
   </section>`;
 }
@@ -342,18 +358,28 @@ async function refreshDashboardMetrics() {
 function renderDashboard() {
   header('Dashboard', 'Bot altyapının ve VPS kaynaklarının kısa özeti.');
   const running = state.bots.filter(b => b.status === 'running').length;
+  const stopped = Math.max(0, state.bots.length - running);
   const problem = state.bots.filter(b => b.state?.oom_killed || (b.state?.exit_code > 0 && b.status !== 'running')).length;
+  const healthText = problem ? `${problem} instance kontrol bekliyor` : (state.system?.docker_ok ? 'Altyapı sağlıklı' : 'Docker kontrol gerekli');
   $('#content').innerHTML = `
+    <section class="dashboard-hero">
+      <div class="dashboard-hero-copy">
+        <span class="section-kicker">ELITE CONTROL PLANE</span>
+        <h2>${problem ? 'Kontrol edilmesi gereken bir şey var.' : 'Her şey kontrol altında.'}</h2>
+        <p>${state.bots.length ? `${running} bot aktif, ${stopped} bot beklemede.` : 'İlk botunu oluşturup saniyeler içinde çalıştırabilirsin.'} ${esc(healthText)}.</p>
+      </div>
+      <div class="hero-status"><span class="hero-status-icon ${problem ? 'warn' : ''}">${icon(problem ? 'alert' : 'shield')}</span><div><b>${problem ? 'Dikkat' : 'System healthy'}</b><span>${state.system?.docker_ok ? 'Docker runtime online' : 'Docker runtime kontrol ediliyor'}</span></div></div>
+    </section>
     ${serverMetricCardsHTML()}
-    <div class="stats-grid bot-stats-grid">
-      <div class="stat-card"><div class="stat-card-icon">${icon('bot')}</div><div class="stat-label">Toplam Bot</div><div class="stat-value">${state.bots.length}</div><div class="stat-sub">Python + Node.js instances</div></div>
-      <div class="stat-card"><div class="stat-card-icon">${icon('play')}</div><div class="stat-label">Çalışan</div><div class="stat-value">${running}</div><div class="stat-sub">Aktif Docker container</div></div>
-      <div class="stat-card"><div class="stat-card-icon">${icon('stop')}</div><div class="stat-label">Kapalı</div><div class="stat-value">${Math.max(0, state.bots.length - running)}</div><div class="stat-sub">Başlatılabilir instance</div></div>
-      <div class="stat-card"><div class="stat-card-icon">${icon(problem ? 'alert' : 'shield')}</div><div class="stat-label">Son Hata</div><div class="stat-value">${problem}</div><div class="stat-sub">Exit / OOM görülen bot</div></div>
-    </div>
-    <section class="card">
-      <div class="card-head"><h3>Botlar</h3><button class="btn small ghost" id="dashRefresh">${icon('refresh')} Yenile</button></div>
-      <div class="card-body">${botCards(state.bots)}</div>
+    <section class="summary-strip" aria-label="Bot özeti">
+      <div class="summary-item"><span class="summary-icon">${icon('bot')}</span><div><small>Toplam</small><strong>${state.bots.length}</strong></div></div>
+      <div class="summary-item"><span class="summary-icon green">${icon('play')}</span><div><small>Çalışan</small><strong>${running}</strong></div></div>
+      <div class="summary-item"><span class="summary-icon neutral">${icon('stop')}</span><div><small>Kapalı</small><strong>${stopped}</strong></div></div>
+      <div class="summary-item"><span class="summary-icon ${problem ? 'red' : 'green'}">${icon(problem ? 'alert' : 'check')}</span><div><small>Uyarı</small><strong>${problem}</strong></div></div>
+    </section>
+    <section class="content-section">
+      <div class="section-head compact"><div><span class="section-kicker">INSTANCES</span><h2>Botlar</h2><p>Python ve Node.js container'larını tek yerden yönet.</p></div><button class="btn quiet" id="dashRefresh">${icon('refresh')} Yenile</button></div>
+      ${botCards(state.bots)}
     </section>`;
   wireBotCards();
   updateSystemCards();
@@ -367,7 +393,9 @@ function renderDashboard() {
 
 function renderBots() {
   header('Botlar', 'Discord ve Telegram bot container’larını yönet.');
-  $('#content').innerHTML = botCards(state.bots);
+  const running = state.bots.filter(b => b.status === 'running').length;
+  $('#content').innerHTML = `<section class="page-intro"><div><span class="section-kicker">INSTANCES</span><h2>Bot altyapın</h2><p>${state.bots.length} instance · ${running} aktif · Docker ile birbirinden izole.</p></div><button class="btn primary" id="botsNew">${icon('plus')} Yeni Bot</button></section>${botCards(state.bots)}`;
+  $('#botsNew')?.addEventListener('click', openNewBot);
   wireBotCards();
 }
 
@@ -435,22 +463,23 @@ function botDetailShell(inner) {
   const b = state.bot;
   header(b.name, `${runtimeLabel(b.runtime)} · ${b.id}`);
   return `
-    <div class="detail-head">
+    <section class="instance-hero">
       <div class="detail-title">
-        <div class="bot-icon ${b.runtime === 'node' ? 'node' : ''}">${runtimeShort(b.runtime)}</div>
+        <div class="bot-icon hero-bot-icon ${b.runtime === 'node' ? 'node' : ''}">${runtimeShort(b.runtime)}</div>
         <div class="detail-title-copy">
+          <div class="instance-label">INSTANCE <span>/${esc(b.id)}</span></div>
           <h2>${esc(b.name)}</h2>
-          <div class="detail-title-meta"><span class="status ${esc(b.status)}">${statusLabel(b.status)}</span><span class="muted mono" style="font-size:10px">${b.id}</span></div>
+          <div class="detail-title-meta"><span class="status ${esc(b.status)}"><i class="status-dot"></i>${statusLabel(b.status)}</span><span class="runtime-chip">${runtimeLabel(b.runtime)}</span><span class="runtime-chip">${b.memory_mb} MB · ${b.cpus} CPU</span></div>
         </div>
       </div>
       <div class="action-row">
-        <button class="btn small success" data-action="start">${icon('play')} Başlat</button>
-        <button class="btn small" data-action="restart">${icon('restart')} Restart</button>
-        <button class="btn small" data-action="stop">${icon('stop')} Durdur</button>
+        <button class="btn success" data-action="start">${icon('play')} Başlat</button>
+        <button class="btn" data-action="restart">${icon('restart')} Restart</button>
+        <button class="btn" data-action="stop">${icon('stop')} Durdur</button>
       </div>
-    </div>
-    <div class="tabs">${tabDef().map(([k, i, v]) => `<button class="tab ${state.tab === k ? 'active' : ''}" data-tab="${k}">${icon(i)}${v}</button>`).join('')}</div>
-    ${inner}`;
+    </section>
+    <div class="tabs detail-tabs">${tabDef().map(([k, i, v]) => `<button class="tab ${state.tab === k ? 'active' : ''}" data-tab="${k}">${icon(i)}<span>${v}</span></button>`).join('')}</div>
+    <div class="detail-content">${inner}</div>`;
 }
 
 function wireDetail() {
@@ -499,25 +528,25 @@ function stateNoteHTML() {
 function overviewHTML() {
   const b = state.bot;
   return `<div class="overview-grid">
-    <div class="card">
-      <div class="card-head"><h3>Canlı Kaynaklar</h3><span class="muted" style="font-size:10px">5 sn güncellenir</span></div>
+    <div class="card premium-card">
+      <div class="card-head"><div><span class="section-kicker">REALTIME</span><h3>Canlı kaynaklar</h3></div><span class="card-live"><span class="live-pulse"></span>5 sn</span></div>
       <div class="card-body">
         <div class="metrics">
-          <div class="metric"><div class="metric-top"><span>Durum</span>${icon('activity')}</div><b id="mStatus">${statusLabel(b.status)}</b></div>
-          <div class="metric"><div class="metric-top"><span>CPU</span>${icon('cpu')}</div><b id="mCPU">—</b></div>
-          <div class="metric"><div class="metric-top"><span>RAM</span>${icon('memory')}</div><b id="mRAM">—</b></div>
-          <div class="metric"><div class="metric-top"><span>Network</span>${icon('network')}</div><b id="mNET">—</b></div>
+          <div class="metric"><div class="metric-top"><span>Durum</span><span class="metric-icon">${icon('activity')}</span></div><b id="mStatus">${statusLabel(b.status)}</b><small>Container state</small></div>
+          <div class="metric"><div class="metric-top"><span>CPU</span><span class="metric-icon">${icon('cpu')}</span></div><b id="mCPU">—</b><small>Anlık kullanım</small></div>
+          <div class="metric"><div class="metric-top"><span>RAM</span><span class="metric-icon">${icon('memory')}</span></div><b id="mRAM">—</b><small>Limit ${b.memory_mb} MB</small></div>
+          <div class="metric"><div class="metric-top"><span>Network</span><span class="metric-icon">${icon('network')}</span></div><b id="mNET">—</b><small>RX / TX</small></div>
         </div>
         <div id="stateNote">${stateNoteHTML()}</div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-head"><h3>Startup Pipeline</h3><button class="btn small soft" id="goStartup">${icon('settings')} Düzenle</button></div>
+    <div class="card premium-card pipeline-card">
+      <div class="card-head"><div><span class="section-kicker">AUTOMATION</span><h3>Startup pipeline</h3></div><button class="btn small quiet" id="goStartup">${icon('settings')} Düzenle</button></div>
       <div class="card-body">
         <div class="pipeline-list">
-          <div class="pipeline-row"><div class="pipeline-step">1</div><div class="pipeline-info"><b>Runtime ortamı</b><code>${esc(runtimeLabel(b.runtime))}${b.runtime === 'python' ? ' · per-bot venv' : ' · per-bot node_modules'}</code></div></div>
-          <div class="pipeline-row"><div class="pipeline-step">2</div><div class="pipeline-info"><b>Dependency kurulumu · ${esc(b.dependency_file || 'kapalı')}</b><code>${esc(b.install_command || 'Kurulum adımı yok')}</code></div></div>
-          <div class="pipeline-row"><div class="pipeline-step">3</div><div class="pipeline-info"><b>Startup · ${esc(b.main_file)}</b><code>${esc(b.startup)}</code></div></div>
+          <div class="pipeline-row"><div class="pipeline-step"><span>01</span>${icon('box')}</div><div class="pipeline-info"><b>Runtime hazırlanır</b><p>${esc(runtimeLabel(b.runtime))}${b.runtime === 'python' ? ' · izole per-bot venv' : ' · izole node_modules'}</p></div></div>
+          <div class="pipeline-row"><div class="pipeline-step"><span>02</span>${icon('package')}</div><div class="pipeline-info"><b>Dependencies kurulur</b><code>${esc(b.install_command || 'Kurulum adımı yok')}</code></div></div>
+          <div class="pipeline-row"><div class="pipeline-step"><span>03</span>${icon('play')}</div><div class="pipeline-info"><b>${esc(b.main_file)} başlatılır</b><code>${esc(b.startup)}</code></div></div>
         </div>
       </div>
     </div>
@@ -562,13 +591,13 @@ async function botAction(action) {
 function consoleHTML() {
   return `<div class="console-card">
     <div class="console-toolbar">
-      <div class="console-title"><span class="dot ${state.bot.status === 'running' ? 'ok' : ''}"></span>${icon('terminal')} Live Console</div>
-      <div class="console-tools"><button class="btn" id="clearConsole">${icon('trash')} Temizle</button><button class="btn" id="reinstallConsole">${icon('package')} Dependencies</button></div>
+      <div class="console-title"><span class="terminal-lights"><i></i><i></i><i></i></span><span class="dot ${state.bot.status === 'running' ? 'ok' : ''}"></span>${icon('terminal')}<span>Live Console</span><small>${esc(state.bot.name)}</small></div>
+      <div class="console-tools"><button class="btn" id="clearConsole">${icon('trash')}<span>Temizle</span></button><button class="btn" id="reinstallConsole">${icon('package')}<span>Dependencies</span></button></div>
     </div>
     <div id="console" class="console"><span class="console-line-system">eLite CP console bağlanıyor...</span>\n</div>
     <form id="execForm" class="console-command">
       <span class="console-prompt">$</span>
-      <input id="execInput" autocomplete="off" spellcheck="false" placeholder="Komut çalıştır: pip list, python --version, ls -la ...">
+      <input id="execInput" autocomplete="off" spellcheck="false" placeholder="Komut çalıştır · pip list, python --version, ls -la ...">
       <button class="btn primary">${icon('send')}<span>Çalıştır</span></button>
     </form>
   </div>`;
