@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.6.1
+
+### Fixed
+
+- Fixed SQLite Explorer crashing with `Cannot read properties of null (reading 'length')` when opening an empty table.
+- Empty SQLite tables now serialize row data as an empty array instead of `null`.
+- Added defensive frontend normalization for SQLite row/column payloads so malformed or legacy empty responses render safely.
+- Added a dedicated SQLite navigation icon and versioned the SVG sprite URL so newly-added icons cannot be hidden by an older browser cache.
+
 ## v0.6.0
 
 ### Added

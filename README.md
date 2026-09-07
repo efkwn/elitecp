@@ -12,7 +12,7 @@ Go · SQLite · Docker · Vanilla HTML/CSS/JS
 
 ---
 
-> **v0.6.0** — Bot files can now be downloaded directly from the file manager, and every bot gets a built-in **read-only SQLite Explorer** that automatically detects SQLite databases, lists their tables and previews rows with pagination. The frontend remains framework-free and dependency-light.
+> **v0.6.1** — Patch release for SQLite Explorer: empty tables now render correctly instead of triggering a browser error, and the SQLite tab has its own cache-safe icon. File downloads and the read-only database browser from v0.6 remain fully supported.
 
 ## Why eLite CP?
 

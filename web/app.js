@@ -1,5 +1,6 @@
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+const ASSET_VERSION = '0.6.1';
 
 function initialLocale() {
   try { return localStorage.getItem('elitecp_locale') === 'tr' ? 'tr' : 'en'; }
@@ -453,7 +454,7 @@ const runtimeDefaults = {
 };
 
 function icon(name, cls = '') {
-  return `<svg class="icon ${cls}" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
+  return `<svg class="icon ${cls}" aria-hidden="true"><use href="/icons.svg?v=${ASSET_VERSION}#${name}"></use></svg>`;
 }
 
 async function api(path, opts = {}) {
@@ -887,7 +888,7 @@ function tabDef() {
     ['overview', 'dashboard', t('tabs.overview')],
     ['console', 'terminal', t('tabs.console')],
     ['files', 'folder', t('tabs.files')],
-    ['sqlite', 'database', t('tabs.sqlite')],
+    ['sqlite', 'sqlite', t('tabs.sqlite')],
     ['env', 'key', t('tabs.variables')],
     ['settings', 'settings', t('tabs.startupSettings')],
   ];
@@ -1216,8 +1217,12 @@ function renderSQLite() {
   const s = state.sqlite;
   const selectedDB = s.databases.find(d => d.path === s.path);
   const rows = s.rows;
-  const from = rows && rows.rows.length ? rows.offset + 1 : 0;
-  const to = rows ? rows.offset + rows.rows.length : 0;
+  const rowItems = Array.isArray(rows?.rows) ? rows.rows : [];
+  const columns = Array.isArray(rows?.columns) ? rows.columns : [];
+  const rowOffset = Number.isFinite(Number(rows?.offset)) ? Number(rows.offset) : 0;
+  const rowLimit = Number.isFinite(Number(rows?.limit)) && Number(rows.limit) > 0 ? Number(rows.limit) : 100;
+  const from = rows && rowItems.length ? rowOffset + 1 : 0;
+  const to = rows ? rowOffset + rowItems.length : 0;
 
   const databaseList = s.databases.length ? s.databases.map(db => `
     <button class="sqlite-list-item ${s.path === db.path ? 'active' : ''}" data-sqlite-db="${esc(db.path)}">
@@ -1236,8 +1241,11 @@ function renderSQLite() {
     dataArea = `<div class="sqlite-empty-state">${icon('table')}<h3>${selectedDB ? esc(selectedDB.name) : t('sqlite.title')}</h3><p>${s.tables.length ? t('sqlite.selectTable') : t('sqlite.noTables')}</p></div>`;
   }
   if (s.path && s.table && rows) {
-    const tableHead = rows.columns.map(c => `<th title="${esc(c)}">${esc(c)}</th>`).join('');
-    const tableRows = rows.rows.length ? rows.rows.map(row => `<tr>${row.map(sqliteCell).map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${Math.max(1, rows.columns.length)}"><div class="sqlite-table-empty">${t('sqlite.emptyRows')}</div></td></tr>`;
+    const tableHead = columns.map(c => `<th title="${esc(c)}">${esc(c)}</th>`).join('');
+    const tableRows = rowItems.length ? rowItems.map(row => {
+      const cells = Array.isArray(row) ? row : [];
+      return `<tr>${cells.map(sqliteCell).map(cell => `<td>${cell}</td>`).join('')}</tr>`;
+    }).join('') : `<tr><td colspan="${Math.max(1, columns.length)}"><div class="sqlite-table-empty">${t('sqlite.emptyRows')}</div></td></tr>`;
     dataArea = `
       <div class="sqlite-data-head">
         <div><span class="section-kicker">TABLE</span><h3>${esc(s.table)}</h3><p>/${esc(s.path)}</p></div>
@@ -1246,7 +1254,7 @@ function renderSQLite() {
       <div class="sqlite-table-scroll"><table class="sqlite-table"><thead><tr>${tableHead}</tr></thead><tbody>${tableRows}</tbody></table></div>
       <div class="sqlite-pagination">
         <span>${t('sqlite.rowsRange', { from, to })}</span>
-        <div><button class="btn small ghost" id="sqlitePrev" ${rows.offset <= 0 ? 'disabled' : ''}>${icon('chevron-left')} ${t('sqlite.previous')}</button><button class="btn small ghost" id="sqliteNext" ${!rows.has_more ? 'disabled' : ''}>${t('sqlite.next')} ${icon('chevron-right')}</button></div>
+        <div><button class="btn small ghost" id="sqlitePrev" ${rowOffset <= 0 ? 'disabled' : ''}>${icon('chevron-left')} ${t('sqlite.previous')}</button><button class="btn small ghost" id="sqliteNext" ${!rows.has_more ? 'disabled' : ''}>${t('sqlite.next')} ${icon('chevron-right')}</button></div>
       </div>`;
   }
 
@@ -1330,7 +1338,15 @@ async function loadSQLiteRows(table, offset = 0) {
   s.error = '';
   renderSQLite();
   try {
-    s.rows = await api(`/api/bots/${state.bot.id}/sqlite/rows?path=${encodeURIComponent(s.path)}&table=${encodeURIComponent(table)}&limit=100&offset=${Math.max(0, offset)}`);
+    const payload = await api(`/api/bots/${state.bot.id}/sqlite/rows?path=${encodeURIComponent(s.path)}&table=${encodeURIComponent(table)}&limit=100&offset=${Math.max(0, offset)}`);
+    s.rows = {
+      ...payload,
+      columns: Array.isArray(payload?.columns) ? payload.columns : [],
+      rows: Array.isArray(payload?.rows) ? payload.rows : [],
+      offset: Number.isFinite(Number(payload?.offset)) ? Number(payload.offset) : Math.max(0, offset),
+      limit: Number.isFinite(Number(payload?.limit)) && Number(payload.limit) > 0 ? Number(payload.limit) : 100,
+      has_more: Boolean(payload?.has_more),
+    };
     s.loading = false;
     renderSQLite();
   } catch (err) {

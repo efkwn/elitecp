@@ -230,7 +230,13 @@ func sqliteColumnValue(st *C.sqlite3_stmt, idx int) any {
 }
 
 func readSQLiteRows(path, table string, offset, limit int) (SQLiteRows, error) {
-	result := SQLiteRows{Path: path, Table: table, Offset: offset, Limit: limit}
+	// Keep slices non-nil so empty SQLite tables are encoded as [] instead of null.
+	// The browser viewer can then render an empty-state row without special-casing
+	// Go's nil-slice JSON representation.
+	result := SQLiteRows{
+		Path: path, Table: table, Offset: offset, Limit: limit,
+		Columns: []string{}, Rows: make([][]any, 0),
+	}
 	conn, err := openSQLiteReadOnly(path)
 	if err != nil {
 		return result, err

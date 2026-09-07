@@ -1,8 +1,8 @@
 # Upgrading eLite CP
 
-## Upgrade to v0.6.0
+## Upgrade to v0.6.1
 
-v0.6.0 does not require a manual database migration. Existing users, bots, files, variables and startup settings are preserved.
+v0.6.1 does not require a manual database migration. Existing users, bots, files, variables and startup settings are preserved.
 
 Run:
 
@@ -29,8 +29,12 @@ journalctl -u elitecp -n 80 --no-pager
 Expected version:
 
 ```text
-eLite CP 0.6.0
+eLite CP 0.6.1
 ```
+
+## SQLite empty-table fix
+
+This patch fixes the SQLite Explorer error that could appear when a selected table had zero rows. Empty tables now render the normal empty-state message instead of a JavaScript exception. A dedicated SQLite icon is also included.
 
 ## New SQLite Explorer
 
@@ -40,4 +44,4 @@ If a SQLite database does not appear immediately, verify that it is a valid init
 
 ## Browser cache
 
-Frontend assets are versioned as `v0.6.0`. If an old interface is still visible after the update, perform one hard refresh.
+Frontend assets are versioned as `v0.6.1`. If an old interface is still visible after the update, perform one hard refresh.

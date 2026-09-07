@@ -19,6 +19,9 @@ func TestSQLiteDiscoveryTablesAndRows(t *testing.T) {
 	if err := db.exec(`INSERT INTO messages(body, score, optional, snowflake) VALUES(?, ?, NULL, 9223372036854775807)`, "hello", 4.5); err != nil {
 		t.Fatal(err)
 	}
+	if err := db.exec(`CREATE TABLE empty_reports (id INTEGER PRIMARY KEY, created_at TEXT)`); err != nil {
+		t.Fatal(err)
+	}
 	if err := db.exec(`CREATE TABLE "odd""name" (value TEXT)`); err != nil {
 		t.Fatal(err)
 	}
@@ -73,6 +76,17 @@ func TestSQLiteDiscoveryTablesAndRows(t *testing.T) {
 	}
 	if rows.Rows[0][1] != "hello" || rows.Rows[0][3] != nil || rows.Rows[0][4] != "9223372036854775807" {
 		t.Fatalf("unexpected row values: %#v", rows.Rows[0])
+	}
+
+	emptyRows, err := readSQLiteRows(path, "empty_reports", 0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if emptyRows.Rows == nil || len(emptyRows.Rows) != 0 {
+		t.Fatalf("empty tables must return a non-nil empty row slice, got %#v", emptyRows.Rows)
+	}
+	if len(emptyRows.Columns) != 2 {
+		t.Fatalf("expected empty table columns, got %#v", emptyRows.Columns)
 	}
 
 	quotedRows, err := readSQLiteRows(path, `odd"name`, 0, 100)
