@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.6.0
+
+### Added
+
+- Added authenticated direct downloads for regular files in each bot's file manager.
+- Added a new **SQLite** tab to the bot detail navigation.
+- SQLite databases are discovered automatically by their real SQLite file signature rather than filename extension alone.
+- Added read-only table discovery and paginated row previews (100 rows per page, server-side maximum 200).
+- Added safe rendering for SQLite `NULL`, integer, floating-point, text and BLOB values.
+- Added database download access directly from SQLite Explorer.
+- Added local database/table/download SVG icons with no external icon dependency.
+- Added full English and Turkish strings for the SQLite Explorer.
+
+### Security / performance
+
+- SQLite Explorer opens bot databases with SQLite read-only mode.
+- Arbitrary SQL execution is not exposed.
+- Table names are validated against `sqlite_master` before query construction and identifiers are safely quoted.
+- File traversal and symlink protections are reused for downloads and database access.
+- Database discovery skips dependency/runtime cache directories and uses scan/result caps to remain lightweight.
+
+### UI
+
+- Added a responsive two-pane database browser on desktop and stacked layout on mobile.
+- Added horizontal scrolling for wide database tables.
+- File download actions stay compact on mobile.
+
 ## v0.5.0
 
 ### Added
@@ -13,16 +40,7 @@
 ### Fixed
 
 - Fixed the mobile login screen becoming extremely narrow on small viewports.
-- The issue was caused by a later premium desktop grid rule overriding the earlier mobile login grid declaration.
-- Added a final responsive login layout guard using a single minmax grid track and a full-width, max-width-capped login card.
 - Improved safe-area padding for mobile browsers.
-
-### Documentation
-
-- Rewrote README, SECURITY and UPGRADE documentation in English.
-- Reworked installation instructions for public GitHub users.
-- Removed the project-owner-specific domain default from the installer.
-- Installer and updater terminal output are now English.
 
 ### Lightweight by design
 

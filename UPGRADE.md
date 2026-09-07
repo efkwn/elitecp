@@ -1,8 +1,8 @@
 # Upgrading eLite CP
 
-## Upgrade to v0.5.0
+## Upgrade to v0.6.0
 
-v0.5.0 does not require a manual database migration. Existing users, bots, files, environment variables and startup settings are preserved.
+v0.6.0 does not require a manual database migration. Existing users, bots, files, variables and startup settings are preserved.
 
 Run:
 
@@ -12,7 +12,7 @@ curl -fsSL https://raw.githubusercontent.com/efkwn/elitecp/main/update.sh -o /tm
 
 The updater:
 
-1. creates a SQLite backup under `/var/lib/elitecp/backups/`
+1. creates an eLite CP SQLite backup under `/var/lib/elitecp/backups/`
 2. fetches the latest `main` branch
 3. runs Go tests
 4. builds the new binary
@@ -29,13 +29,15 @@ journalctl -u elitecp -n 80 --no-pager
 Expected version:
 
 ```text
-eLite CP 0.5.0
+eLite CP 0.6.0
 ```
+
+## New SQLite Explorer
+
+No package or database migration is required. The explorer reuses the system SQLite library already required by eLite CP and opens bot databases read-only.
+
+If a SQLite database does not appear immediately, verify that it is a valid initialized SQLite file and press **Refresh** in the SQLite tab.
 
 ## Browser cache
 
-If the old interface is still visible after the update, perform a hard refresh or clear the site cache once. No browser data needs to be deleted for normal upgrades.
-
-## Language preference
-
-English is the default for browsers that have never selected a language. If a user changes the UI to Turkish, eLite CP stores that preference locally in the browser.
+Frontend assets are versioned as `v0.6.0`. If an old interface is still visible after the update, perform one hard refresh.

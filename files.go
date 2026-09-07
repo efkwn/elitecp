@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -204,6 +205,48 @@ func (a *App) deleteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
+}
+
+func (a *App) downloadFile(w http.ResponseWriter, r *http.Request) {
+	base, err := a.botBase(r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	rel := r.URL.Query().Get("path")
+	if strings.TrimSpace(rel) == "" {
+		writeError(w, http.StatusBadRequest, "path is required")
+		return
+	}
+	path, err := securePath(base, rel, false)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "file not found")
+		return
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil || !info.Mode().IsRegular() {
+		writeError(w, http.StatusBadRequest, "only regular files can be downloaded")
+		return
+	}
+
+	contentType := mime.TypeByExtension(strings.ToLower(filepath.Ext(info.Name())))
+	if contentType == "" {
+		head := make([]byte, 512)
+		n, _ := file.Read(head)
+		contentType = http.DetectContentType(head[:n])
+		_, _ = file.Seek(0, io.SeekStart)
+	}
+	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": info.Name()})
+	w.Header().Set("Content-Disposition", disposition)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "private, no-store")
+	http.ServeContent(w, r, info.Name(), info.ModTime(), file)
 }
 
 func (a *App) makeDir(w http.ResponseWriter, r *http.Request) {

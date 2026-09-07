@@ -19,6 +19,7 @@ const state = {
   system: null,
   systemTimer: null,
   systemHistory: { cpu: [], memory: [], disk: [] },
+  sqlite: { databases: [], path: '', tables: [], table: '', rows: null, loading: false, error: '' },
   locale: initialLocale(),
 };
 
@@ -58,6 +59,7 @@ const translations = {
     'actions.run': 'Run',
     'actions.clear': 'Clear',
     'actions.upload': 'Upload',
+    'actions.download': 'Download',
     'actions.delete': 'Delete',
     'actions.file': 'File',
     'actions.folder': 'Folder',
@@ -133,6 +135,7 @@ const translations = {
     'tabs.overview': 'Overview',
     'tabs.console': 'Console',
     'tabs.files': 'Files',
+    'tabs.sqlite': 'SQLite',
     'tabs.variables': 'Variables',
     'tabs.startupSettings': 'Startup & Settings',
     'detail.filesLoading': 'Loading files...',
@@ -174,6 +177,23 @@ const translations = {
     'files.folderPrompt': 'Folder name:',
     'files.deleteConfirm': 'Delete this path?\n{path}',
     'files.deleted': 'Deleted.',
+    'sqlite.title': 'SQLite Explorer',
+    'sqlite.subtitle': 'Browse SQLite databases found in this bot\'s files without leaving eLite CP.',
+    'sqlite.readOnly': 'Read-only',
+    'sqlite.scanNote': 'Databases are detected automatically by their SQLite file signature.',
+    'sqlite.refresh': 'Refresh',
+    'sqlite.databases': 'Databases',
+    'sqlite.tables': 'Tables',
+    'sqlite.noDatabases': 'No SQLite database was found in this bot\'s files.',
+    'sqlite.noTables': 'This database has no user tables.',
+    'sqlite.selectDatabase': 'Select a database to browse its tables.',
+    'sqlite.selectTable': 'Select a table to preview its rows.',
+    'sqlite.emptyRows': 'This table is empty.',
+    'sqlite.previous': 'Previous',
+    'sqlite.next': 'Next',
+    'sqlite.rowsRange': 'Rows {from}–{to}',
+    'sqlite.liveNote': 'The bot can keep writing to the database while you browse. Refresh to load the latest data.',
+    'sqlite.loading': 'Loading SQLite data...',
     'env.title': 'Environment Variables',
     'env.variable': 'Variable',
     'env.note': 'Store secrets such as Discord / Telegram tokens here. They are passed to the container environment when saved.',
@@ -230,6 +250,7 @@ const translations = {
     'actions.run': 'Çalıştır',
     'actions.clear': 'Temizle',
     'actions.upload': 'Yükle',
+    'actions.download': 'İndir',
     'actions.delete': 'Sil',
     'actions.file': 'Dosya',
     'actions.folder': 'Klasör',
@@ -305,6 +326,7 @@ const translations = {
     'tabs.overview': 'Genel',
     'tabs.console': 'Console',
     'tabs.files': 'Dosyalar',
+    'tabs.sqlite': 'SQLite',
     'tabs.variables': 'Variables',
     'tabs.startupSettings': 'Startup & Ayarlar',
     'detail.filesLoading': 'Dosyalar yükleniyor...',
@@ -346,6 +368,23 @@ const translations = {
     'files.folderPrompt': 'Klasör adı:',
     'files.deleteConfirm': 'Bu yol silinsin mi?\n{path}',
     'files.deleted': 'Silindi.',
+    'sqlite.title': 'SQLite Gezgini',
+    'sqlite.subtitle': 'Bot dosyalarının içindeki SQLite veritabanlarını eLite CP üzerinden görüntüle.',
+    'sqlite.readOnly': 'Salt okunur',
+    'sqlite.scanNote': 'Veritabanları SQLite dosya imzasına göre otomatik algılanır.',
+    'sqlite.refresh': 'Yenile',
+    'sqlite.databases': 'Veritabanları',
+    'sqlite.tables': 'Tablolar',
+    'sqlite.noDatabases': 'Bu botun dosyalarında SQLite veritabanı bulunamadı.',
+    'sqlite.noTables': 'Bu veritabanında kullanıcı tablosu yok.',
+    'sqlite.selectDatabase': 'Tabloları görmek için bir veritabanı seç.',
+    'sqlite.selectTable': 'Satırları görmek için bir tablo seç.',
+    'sqlite.emptyRows': 'Bu tablo boş.',
+    'sqlite.previous': 'Önceki',
+    'sqlite.next': 'Sonraki',
+    'sqlite.rowsRange': 'Satırlar {from}–{to}',
+    'sqlite.liveNote': 'Sen görüntülerken bot veritabanına yazmaya devam edebilir. En güncel veriler için yenile.',
+    'sqlite.loading': 'SQLite verileri yükleniyor...',
     'env.title': 'Environment Variables',
     'env.variable': 'Variable',
     'env.note': 'Discord / Telegram token gibi secret değerleri burada tutabilirsin. Kaydedildiğinde container environmentına aktarılır.',
@@ -836,6 +875,7 @@ async function openBot(id) {
     state.bot = d.bot;
     state.tab = 'overview';
     state.filePath = '';
+    state.sqlite = { databases: [], path: '', tables: [], table: '', rows: null, loading: false, error: '' };
     state.view = 'bots';
     setActiveNav();
     render();
@@ -847,6 +887,7 @@ function tabDef() {
     ['overview', 'dashboard', t('tabs.overview')],
     ['console', 'terminal', t('tabs.console')],
     ['files', 'folder', t('tabs.files')],
+    ['sqlite', 'database', t('tabs.sqlite')],
     ['env', 'key', t('tabs.variables')],
     ['settings', 'settings', t('tabs.startupSettings')],
   ];
@@ -892,6 +933,7 @@ async function renderBotDetail() {
   if (state.tab === 'overview') inner = overviewHTML();
   else if (state.tab === 'console') inner = consoleHTML();
   else if (state.tab === 'files') inner = `<div id="filesRoot"><div class="empty">${t('detail.filesLoading')}</div></div>`;
+  else if (state.tab === 'sqlite') inner = `<div id="sqliteRoot"><div class="empty">${t('sqlite.loading')}</div></div>`;
   else if (state.tab === 'env') inner = `<div id="envRoot"><div class="empty">${t('detail.variablesLoading')}</div></div>`;
   else inner = settingsHTML();
 
@@ -904,6 +946,7 @@ async function renderBotDetail() {
   }
   if (state.tab === 'console') startConsole();
   if (state.tab === 'files') loadFiles();
+  if (state.tab === 'sqlite') loadSQLiteDatabases();
   if (state.tab === 'env') loadEnv();
   if (state.tab === 'settings') wireSettings();
 }
@@ -1073,7 +1116,7 @@ function renderFiles(files) {
         <div class="file-name">${icon(f.is_dir ? 'folder' : 'file')}<button data-open-file="${esc(f.path)}" data-dir="${f.is_dir}">${esc(f.name)}</button></div>
         <div class="file-dim">${f.is_dir ? '—' : formatBytes(f.size)}</div>
         <div class="file-dim">${new Date(f.modified_at).toLocaleString(dateLocale)}</div>
-        <div class="file-actions"><button class="btn small danger" data-delete-file="${esc(f.path)}" aria-label="${esc(t('actions.delete'))}">${icon('trash')}</button></div>
+        <div class="file-actions">${f.is_dir ? '' : `<a class="btn small ghost file-download" href="/api/bots/${encodeURIComponent(state.bot.id)}/download?path=${encodeURIComponent(f.path)}" aria-label="${esc(t('actions.download'))}" title="${esc(t('actions.download'))}">${icon('download')}</a>`}<button class="btn small danger" data-delete-file="${esc(f.path)}" aria-label="${esc(t('actions.delete'))}">${icon('trash')}</button></div>
       </div>`).join('') : `<div class="empty">${t('files.empty')}</div>`}</div>`;
 
   $('#upDir')?.addEventListener('click', () => { state.filePath = parentPath(state.filePath); loadFiles(); });
@@ -1144,6 +1187,158 @@ async function deletePath(path) {
   if (!confirm(t('files.deleteConfirm', { path }))) return;
   try { await api(`/api/bots/${state.bot.id}/file?path=${encodeURIComponent(path)}`, { method: 'DELETE' }); toast(t('files.deleted')); loadFiles(); }
   catch (err) { toast(err.message, true); }
+}
+
+
+function sqliteCell(value) {
+  if (value === null) return `<span class="sqlite-null">NULL</span>`;
+  const text = String(value);
+  return `<span class="sqlite-cell-value" title="${esc(text)}">${esc(text)}</span>`;
+}
+
+function wireSQLiteUI() {
+  $('#refreshSQLite')?.addEventListener('click', () => loadSQLiteDatabases(true));
+  $$('[data-sqlite-db]').forEach(b => b.addEventListener('click', () => loadSQLiteTables(b.dataset.sqliteDb)));
+  $$('[data-sqlite-table]').forEach(b => b.addEventListener('click', () => loadSQLiteRows(b.dataset.sqliteTable, 0)));
+  $('#sqlitePrev')?.addEventListener('click', () => {
+    const s = state.sqlite;
+    loadSQLiteRows(s.table, Math.max(0, (s.rows?.offset || 0) - (s.rows?.limit || 100)));
+  });
+  $('#sqliteNext')?.addEventListener('click', () => {
+    const s = state.sqlite;
+    loadSQLiteRows(s.table, (s.rows?.offset || 0) + (s.rows?.limit || 100));
+  });
+}
+
+function renderSQLite() {
+  const root = $('#sqliteRoot');
+  if (!root) return;
+  const s = state.sqlite;
+  const selectedDB = s.databases.find(d => d.path === s.path);
+  const rows = s.rows;
+  const from = rows && rows.rows.length ? rows.offset + 1 : 0;
+  const to = rows ? rows.offset + rows.rows.length : 0;
+
+  const databaseList = s.databases.length ? s.databases.map(db => `
+    <button class="sqlite-list-item ${s.path === db.path ? 'active' : ''}" data-sqlite-db="${esc(db.path)}">
+      <span class="sqlite-list-icon">${icon('database')}</span>
+      <span class="sqlite-list-copy"><b>${esc(db.name)}</b><small title="/${esc(db.path)}">/${esc(db.path)}</small></span>
+      <span class="sqlite-list-meta">${formatBytes(db.size)}</span>
+    </button>`).join('') : `<div class="sqlite-empty-small">${t('sqlite.noDatabases')}</div>`;
+
+  const tableList = s.path ? (s.tables.length ? s.tables.map(table => `
+    <button class="sqlite-table-item ${s.table === table.name ? 'active' : ''}" data-sqlite-table="${esc(table.name)}">
+      ${icon('table')}<span>${esc(table.name)}</span>${icon('chevron-right')}
+    </button>`).join('') : `<div class="sqlite-empty-small">${t('sqlite.noTables')}</div>`) : `<div class="sqlite-empty-small">${t('sqlite.selectDatabase')}</div>`;
+
+  let dataArea = `<div class="sqlite-empty-state">${icon('database')}<h3>${t('sqlite.title')}</h3><p>${s.databases.length ? t('sqlite.selectDatabase') : t('sqlite.noDatabases')}</p></div>`;
+  if (s.path && !s.table) {
+    dataArea = `<div class="sqlite-empty-state">${icon('table')}<h3>${selectedDB ? esc(selectedDB.name) : t('sqlite.title')}</h3><p>${s.tables.length ? t('sqlite.selectTable') : t('sqlite.noTables')}</p></div>`;
+  }
+  if (s.path && s.table && rows) {
+    const tableHead = rows.columns.map(c => `<th title="${esc(c)}">${esc(c)}</th>`).join('');
+    const tableRows = rows.rows.length ? rows.rows.map(row => `<tr>${row.map(sqliteCell).map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${Math.max(1, rows.columns.length)}"><div class="sqlite-table-empty">${t('sqlite.emptyRows')}</div></td></tr>`;
+    dataArea = `
+      <div class="sqlite-data-head">
+        <div><span class="section-kicker">TABLE</span><h3>${esc(s.table)}</h3><p>/${esc(s.path)}</p></div>
+        <a class="btn small ghost" href="/api/bots/${encodeURIComponent(state.bot.id)}/download?path=${encodeURIComponent(s.path)}">${icon('download')} ${t('actions.download')}</a>
+      </div>
+      <div class="sqlite-table-scroll"><table class="sqlite-table"><thead><tr>${tableHead}</tr></thead><tbody>${tableRows}</tbody></table></div>
+      <div class="sqlite-pagination">
+        <span>${t('sqlite.rowsRange', { from, to })}</span>
+        <div><button class="btn small ghost" id="sqlitePrev" ${rows.offset <= 0 ? 'disabled' : ''}>${icon('chevron-left')} ${t('sqlite.previous')}</button><button class="btn small ghost" id="sqliteNext" ${!rows.has_more ? 'disabled' : ''}>${t('sqlite.next')} ${icon('chevron-right')}</button></div>
+      </div>`;
+  }
+
+  root.innerHTML = `
+    <section class="sqlite-intro card">
+      <div class="sqlite-intro-icon">${icon('database')}</div>
+      <div class="sqlite-intro-copy"><div><span class="section-kicker">DATA</span><h3>${t('sqlite.title')}</h3></div><p>${t('sqlite.subtitle')}</p><div class="sqlite-note">${icon('shield')}<b>${t('sqlite.readOnly')}</b><span>${t('sqlite.scanNote')}</span></div></div>
+      <button class="btn ghost" id="refreshSQLite">${icon('refresh')} ${t('sqlite.refresh')}</button>
+    </section>
+    ${s.error ? `<div class="state-note error">${icon('alert')} ${esc(s.error)}</div>` : ''}
+    <div class="sqlite-workspace ${s.loading ? 'is-loading' : ''}">
+      <aside class="sqlite-browser">
+        <section class="card sqlite-pane">
+          <div class="sqlite-pane-head"><span>${t('sqlite.databases')}</span><b>${s.databases.length}</b></div>
+          <div class="sqlite-list">${databaseList}</div>
+        </section>
+        <section class="card sqlite-pane">
+          <div class="sqlite-pane-head"><span>${t('sqlite.tables')}</span><b>${s.tables.length}</b></div>
+          <div class="sqlite-list sqlite-table-list">${tableList}</div>
+        </section>
+      </aside>
+      <section class="card sqlite-data">${s.loading && !rows ? `<div class="sqlite-empty-state">${icon('refresh')}<h3>${t('sqlite.loading')}</h3></div>` : dataArea}</section>
+    </div>
+    <div class="state-note sqlite-live-note">${icon('activity')} ${t('sqlite.liveNote')}</div>`;
+  wireSQLiteUI();
+}
+
+async function loadSQLiteDatabases(force = false) {
+  const s = state.sqlite;
+  s.loading = true;
+  s.error = '';
+  if (force) s.rows = null;
+  renderSQLite();
+  try {
+    const d = await api(`/api/bots/${state.bot.id}/sqlite`);
+    s.databases = d.databases || [];
+    if (s.path && !s.databases.some(db => db.path === s.path)) {
+      s.path = ''; s.tables = []; s.table = ''; s.rows = null;
+    }
+    s.loading = false;
+    if (!s.path && s.databases.length) return loadSQLiteTables(s.databases[0].path);
+    if (s.path) return loadSQLiteTables(s.path, s.table, s.rows?.offset || 0);
+    renderSQLite();
+  } catch (err) {
+    s.loading = false;
+    s.error = err.message;
+    renderSQLite();
+  }
+}
+
+async function loadSQLiteTables(path, preferredTable = '', preferredOffset = 0) {
+  const s = state.sqlite;
+  s.path = path;
+  s.tables = [];
+  s.table = '';
+  s.rows = null;
+  s.loading = true;
+  s.error = '';
+  renderSQLite();
+  try {
+    const d = await api(`/api/bots/${state.bot.id}/sqlite/tables?path=${encodeURIComponent(path)}`);
+    s.tables = d.tables || [];
+    s.loading = false;
+    const table = preferredTable && s.tables.some(x => x.name === preferredTable) ? preferredTable : (s.tables[0]?.name || '');
+    if (table) return loadSQLiteRows(table, preferredOffset);
+    renderSQLite();
+  } catch (err) {
+    s.loading = false;
+    s.tables = [];
+    s.error = err.message;
+    renderSQLite();
+  }
+}
+
+async function loadSQLiteRows(table, offset = 0) {
+  const s = state.sqlite;
+  if (!s.path || !table) return;
+  if (s.table !== table) s.rows = null;
+  s.table = table;
+  s.loading = true;
+  s.error = '';
+  renderSQLite();
+  try {
+    s.rows = await api(`/api/bots/${state.bot.id}/sqlite/rows?path=${encodeURIComponent(s.path)}&table=${encodeURIComponent(table)}&limit=100&offset=${Math.max(0, offset)}`);
+    s.loading = false;
+    renderSQLite();
+  } catch (err) {
+    s.loading = false;
+    s.rows = null;
+    s.error = err.message;
+    renderSQLite();
+  }
 }
 
 async function loadEnv() {

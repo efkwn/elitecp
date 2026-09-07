@@ -39,3 +39,9 @@ The default service bind address is `127.0.0.1:9080`. Keep it bound to localhost
 ## Reporting vulnerabilities
 
 If you discover a security issue, avoid posting sensitive exploit details publicly before the maintainer has had a reasonable chance to review and fix it. Use a private GitHub security advisory when available.
+
+## File downloads and SQLite Explorer
+
+Bot file downloads are authenticated and reuse the same root-containment and symlink rejection checks as the file editor.
+
+SQLite Explorer is intentionally read-only. It does not provide arbitrary SQL execution or write operations. A database path must resolve inside the selected bot directory, must be a regular non-symlink file, and must contain a valid SQLite file signature before it is opened with `SQLITE_OPEN_READONLY`. Table names are first validated against `sqlite_master` and then safely quoted before row previews are queried.

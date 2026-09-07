@@ -705,3 +705,103 @@ input:focus,select:focus,textarea:focus{border-color:#aaa7ed;box-shadow:0 0 0 3p
   .brand-large .brand-mark{width:41px;height:41px}
   .language-switch button{min-width:31px;padding:0 6px}
 }
+
+/* =========================================================
+   eLite CP v0.6 · Downloads + read-only SQLite Explorer
+   ========================================================= */
+.btn{text-decoration:none}
+.file-row{grid-template-columns:minmax(0,1fr) 95px 145px 92px}
+.file-download{width:33px;padding:0}
+.file-download .icon{width:14px;height:14px}
+
+.sqlite-intro{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:14px;align-items:center;padding:16px 17px;margin-bottom:13px;overflow:visible}
+.sqlite-intro-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,#eeedff,#f7f7ff);border:1px solid #deddfd;color:#5854d8}
+.sqlite-intro-icon .icon{width:22px;height:22px}
+.sqlite-intro-copy{min-width:0}
+.sqlite-intro-copy h3{margin:3px 0 4px;font-size:15px;letter-spacing:-.025em}
+.sqlite-intro-copy>p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+.sqlite-note{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;color:#7f8898;font-size:8.5px}
+.sqlite-note .icon{width:13px;height:13px;color:#4d9e78}
+.sqlite-note b{color:#35835f;padding:3px 6px;border-radius:999px;background:#eef9f4;border:1px solid #d7efe3;font-size:8px}
+
+.sqlite-workspace{display:grid;grid-template-columns:265px minmax(0,1fr);gap:13px;align-items:start;transition:opacity .15s ease}
+.sqlite-workspace.is-loading{opacity:.82}
+.sqlite-browser{display:flex;flex-direction:column;gap:13px;min-width:0}
+.sqlite-pane{overflow:hidden}
+.sqlite-pane-head{height:43px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #eceef2;color:#667084;font-size:9px;font-weight:820;text-transform:uppercase;letter-spacing:.08em}
+.sqlite-pane-head b{min-width:22px;padding:3px 6px;border-radius:999px;background:#f1f2f6;color:#7a8291;text-align:center;font-size:8px}
+.sqlite-list{max-height:252px;overflow:auto;padding:6px;scrollbar-width:thin;scrollbar-color:#d8dce4 transparent}
+.sqlite-list-item,.sqlite-table-item{width:100%;border:0;background:transparent;border-radius:10px;color:#5d6677;transition:.14s;text-align:left}
+.sqlite-list-item{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px}
+.sqlite-list-item:hover,.sqlite-table-item:hover{background:#f7f8fb;color:#3f4757}
+.sqlite-list-item.active,.sqlite-table-item.active{background:#efefff;color:#4f4bc9}
+.sqlite-list-icon{width:32px;height:32px;border-radius:9px;background:#f2f3f7;color:#747e90;display:grid;place-items:center}
+.sqlite-list-item.active .sqlite-list-icon{background:#fff;color:#5652d5;box-shadow:0 2px 7px rgba(61,58,154,.08)}
+.sqlite-list-icon .icon{width:15px;height:15px}
+.sqlite-list-copy{min-width:0;display:flex;flex-direction:column;gap:3px}
+.sqlite-list-copy b{font-size:10px;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sqlite-list-copy small{font:8px "SFMono-Regular",Consolas,monospace;color:#9aa2b1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sqlite-list-meta{font-size:8px;color:#9aa2b1;white-space:nowrap}
+.sqlite-table-item{display:grid;grid-template-columns:18px minmax(0,1fr) 14px;align-items:center;gap:7px;padding:8px 9px;font-size:9.5px;font-weight:680}
+.sqlite-table-item .icon{width:14px;height:14px;color:#8c95a6}
+.sqlite-table-item .icon:last-child{width:12px;height:12px;margin-left:auto}
+.sqlite-table-item.active .icon{color:#6762dc}
+.sqlite-empty-small{padding:18px 10px;color:#969eac;font-size:9px;line-height:1.5;text-align:center}
+
+.sqlite-data{min-height:450px;display:flex;flex-direction:column;min-width:0}
+.sqlite-data-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 15px;border-bottom:1px solid #eceef2}
+.sqlite-data-head h3{margin:3px 0 3px;font-size:14px;letter-spacing:-.02em}
+.sqlite-data-head p{margin:0;max-width:600px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#929baa;font:8.5px "SFMono-Regular",Consolas,monospace}
+.sqlite-empty-state{min-height:448px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:35px;color:#919aa9}
+.sqlite-empty-state>.icon{width:34px;height:34px;margin-bottom:12px;color:#b1b7c4}
+.sqlite-empty-state h3{margin:0 0 5px;color:#596273;font-size:13px}
+.sqlite-empty-state p{margin:0;max-width:360px;font-size:9.5px;line-height:1.55}
+.sqlite-table-scroll{width:100%;overflow:auto;flex:1;scrollbar-width:thin;scrollbar-color:#d4d9e2 transparent}
+.sqlite-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;font-size:9px}
+.sqlite-table th{position:sticky;top:0;z-index:1;min-width:120px;max-width:260px;padding:9px 11px;background:#f7f8fa;border-bottom:1px solid #e4e7ec;border-right:1px solid #eceef2;color:#6c7586;text-align:left;font-size:8px;font-weight:820;letter-spacing:.025em;white-space:nowrap}
+.sqlite-table td{min-width:120px;max-width:300px;height:37px;padding:8px 11px;border-bottom:1px solid #eff0f3;border-right:1px solid #f1f2f4;color:#525b6c;background:#fff;vertical-align:middle}
+.sqlite-table tr:nth-child(even) td{background:#fcfcfd}
+.sqlite-table tr:hover td{background:#f8f8ff}
+.sqlite-table th:last-child,.sqlite-table td:last-child{border-right:0}
+.sqlite-cell-value{display:block;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:"SFMono-Regular",Consolas,monospace}
+.sqlite-null{display:inline-flex;padding:2px 5px;border-radius:5px;background:#f1f2f5;color:#9aa1ad;font:700 7.5px "SFMono-Regular",Consolas,monospace}
+.sqlite-table-empty{padding:34px;text-align:center;color:#969eac}
+.sqlite-pagination{min-height:49px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 11px;border-top:1px solid #e8eaee;color:#8b94a3;font-size:8.5px;background:#fff}
+.sqlite-pagination>div{display:flex;gap:6px}
+.sqlite-pagination .btn{min-height:29px;padding:5px 8px;font-size:8.5px}
+.sqlite-live-note{margin-top:12px}
+.sqlite-live-note .icon{width:14px;height:14px;color:#7773dc;flex:0 0 auto}
+
+@media(max-width:1100px){
+  .file-row{grid-template-columns:minmax(0,1fr) 85px 90px 92px}
+  .sqlite-workspace{grid-template-columns:230px minmax(0,1fr)}
+}
+@media(max-width:860px){
+  .file-row{grid-template-columns:minmax(0,1fr) 78px 92px}
+  .file-row>*:nth-child(3){display:none}
+  .sqlite-workspace{grid-template-columns:1fr}
+  .sqlite-browser{display:grid;grid-template-columns:1fr 1fr}
+  .sqlite-list{max-height:190px}
+  .sqlite-data{min-height:400px}
+  .sqlite-empty-state{min-height:398px}
+}
+@media(max-width:620px){
+  .file-row{grid-template-columns:minmax(0,1fr) 82px}
+  .file-row>*:nth-child(2),.file-row>*:nth-child(3){display:none}
+  .sqlite-intro{grid-template-columns:40px minmax(0,1fr);padding:14px}
+  .sqlite-intro-icon{width:40px;height:40px;border-radius:12px}
+  .sqlite-intro>.btn{grid-column:1/-1;width:100%}
+  .sqlite-note span{display:none}
+  .sqlite-browser{grid-template-columns:1fr}
+  .sqlite-list{max-height:170px}
+  .sqlite-data{min-height:360px}
+  .sqlite-empty-state{min-height:358px}
+  .sqlite-data-head{align-items:flex-start}
+  .sqlite-data-head .btn{width:33px;padding:0}
+  .sqlite-data-head .btn{font-size:0;gap:0}
+  .sqlite-data-head .btn .icon{width:15px;height:15px}
+  .sqlite-table th,.sqlite-table td{min-width:105px;max-width:220px;padding-left:9px;padding-right:9px}
+  .sqlite-pagination{align-items:flex-start;flex-direction:column}
+  .sqlite-pagination>div{width:100%}
+  .sqlite-pagination .btn{flex:1}
+}

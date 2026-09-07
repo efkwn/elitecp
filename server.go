@@ -72,6 +72,10 @@ func (a *App) Routes() http.Handler {
 	mux.Handle("DELETE /api/bots/{id}/file", a.auth(http.HandlerFunc(a.deleteFile)))
 	mux.Handle("POST /api/bots/{id}/upload", a.auth(http.HandlerFunc(a.uploadFiles)))
 	mux.Handle("POST /api/bots/{id}/mkdir", a.auth(http.HandlerFunc(a.makeDir)))
+	mux.Handle("GET /api/bots/{id}/download", a.auth(http.HandlerFunc(a.downloadFile)))
+	mux.Handle("GET /api/bots/{id}/sqlite", a.auth(http.HandlerFunc(a.listSQLiteDatabases)))
+	mux.Handle("GET /api/bots/{id}/sqlite/tables", a.auth(http.HandlerFunc(a.listSQLiteTables)))
+	mux.Handle("GET /api/bots/{id}/sqlite/rows", a.auth(http.HandlerFunc(a.listSQLiteRows)))
 
 	webRoot, err := fs.Sub(embeddedWeb, "web")
 	if err != nil {

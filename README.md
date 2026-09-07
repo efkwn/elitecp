@@ -12,7 +12,7 @@ Go · SQLite · Docker · Vanilla HTML/CSS/JS
 
 ---
 
-> **v0.5.0** — English is now the default interface language, Turkish is available from the built-in language switcher, and the mobile login layout has been hardened for small screens. eLite CP still ships with zero external frontend frameworks, font CDNs or chart libraries.
+> **v0.6.0** — Bot files can now be downloaded directly from the file manager, and every bot gets a built-in **read-only SQLite Explorer** that automatically detects SQLite databases, lists their tables and previews rows with pagination. The frontend remains framework-free and dependency-light.
 
 ## Why eLite CP?
 
@@ -42,6 +42,8 @@ Each bot runs in its own Docker container and has its own persistent application
 - Interactive container command execution
 - Environment variable / token management
 - File manager and text editor
+- Direct per-file downloads from the bot file manager
+- Built-in read-only SQLite Explorer with automatic database detection, table browsing and paginated row previews
 - Drag-and-drop upload and safe ZIP extraction
 - VPS CPU / RAM / disk / uptime cards with lightweight inline sparklines
 - Responsive light UI with local SVG icons
@@ -229,11 +231,28 @@ Keep eLite CP bound to localhost and terminate public HTTP/HTTPS at your existin
 3. Choose Python 3.12 or Node.js 22.
 4. Set RAM and CPU limits.
 5. Create the bot.
-6. Open **Files** and upload your source files.
+6. Open **Files** and upload your source files. You can also download any regular bot file directly from this page.
 7. Put secrets such as bot tokens under **Variables**.
 8. Check **Startup & Settings**.
 9. Press **Start**.
 10. Follow every startup step from **Console**.
+11. If your bot creates a SQLite database, open the **SQLite** tab to browse its tables and rows without installing a separate database viewer.
+
+
+## SQLite Explorer
+
+The **SQLite** tab scans the selected bot's persistent application directory for real SQLite database files by file signature, so common names such as `bot.db`, `data.sqlite` and `users.sqlite3` work automatically. Runtime/cache directories such as `node_modules` and per-bot virtual environments are skipped to keep scans lightweight.
+
+The explorer is intentionally **read-only**. It can:
+
+- discover SQLite databases inside the bot files
+- list user tables
+- preview up to 100 rows per page
+- paginate through larger tables
+- display `NULL`, numeric, text and BLOB-size values safely
+- download the selected database file
+
+It does not expose arbitrary SQL execution or database writes. A running bot may continue updating its database while it is being viewed; use **Refresh** to fetch the latest state.
 
 ## Updating
 
