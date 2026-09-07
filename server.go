@@ -249,19 +249,57 @@ func (a *App) listBots(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
 	defer cancel()
 	for i := range bots {
-		bots[i].Status = a.docker.Status(ctx, bots[i].ID)
+		state := a.docker.State(ctx, bots[i].ID)
+		bots[i].Status = state.Status
+		bots[i].State = &state
 	}
 	writeJSON(w, 200, map[string]any{"bots": bots})
 }
 
-func defaultRuntime(runtime string) (image, startup string) {
+type runtimeDefaults struct {
+	Image          string
+	DependencyFile string
+	MainFile       string
+	InstallCommand string
+	Startup        string
+}
+
+func defaultRuntime(runtime string) runtimeDefaults {
 	switch runtime {
 	case "python":
-		return "python:3.12-slim-bookworm", `mkdir -p .home .elitecp-venv && python -m venv .elitecp-venv && . .elitecp-venv/bin/activate && if [ -f requirements.txt ]; then pip install --disable-pip-version-check --no-cache-dir -r requirements.txt; fi && exec python main.py`
+		return runtimeDefaults{
+			Image:          "python:3.12-slim-bookworm",
+			DependencyFile: "requirements.txt",
+			MainFile:       "bot.py",
+			InstallCommand: `python -m pip install --disable-pip-version-check -r {{dependency_file}}`,
+			Startup:        `python {{main_file}}`,
+		}
 	case "node":
-		return "node:22-bookworm-slim", `mkdir -p .home && if [ -f package-lock.json ]; then npm ci --omit=dev; elif [ -f package.json ]; then npm install --omit=dev; fi && exec npm start`
+		return runtimeDefaults{
+			Image:          "node:22-bookworm-slim",
+			DependencyFile: "package.json",
+			MainFile:       "index.js",
+			InstallCommand: `if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi`,
+			Startup:        `node {{main_file}}`,
+		}
 	}
-	return "", ""
+	return runtimeDefaults{}
+}
+
+func validBotFile(value string, allowEmpty bool) bool {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return allowEmpty
+	}
+	if len(value) > 255 || strings.ContainsRune(value, 0) || strings.HasPrefix(value, "/") || strings.Contains(value, "\\") {
+		return false
+	}
+	for _, part := range strings.Split(value, "/") {
+		if part == "" || part == "." || part == ".." {
+			return false
+		}
+	}
+	return true
 }
 
 func newBotID() (string, error) {
@@ -274,11 +312,14 @@ func newBotID() (string, error) {
 
 func (a *App) createBot(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Name     string  `json:"name"`
-		Runtime  string  `json:"runtime"`
-		Startup  string  `json:"startup"`
-		MemoryMB int     `json:"memory_mb"`
-		CPUs     float64 `json:"cpus"`
+		Name           string  `json:"name"`
+		Runtime        string  `json:"runtime"`
+		DependencyFile string  `json:"dependency_file"`
+		MainFile       string  `json:"main_file"`
+		InstallCommand string  `json:"install_command"`
+		Startup        string  `json:"startup"`
+		MemoryMB       int     `json:"memory_mb"`
+		CPUs           float64 `json:"cpus"`
 	}
 	if err := decodeJSON(r, &in); err != nil {
 		writeError(w, 400, err.Error())
@@ -289,16 +330,33 @@ func (a *App) createBot(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "name must be 1-64 characters")
 		return
 	}
-	image, startup := defaultRuntime(in.Runtime)
-	if image == "" {
+	defaults := defaultRuntime(in.Runtime)
+	if defaults.Image == "" {
 		writeError(w, 400, "runtime must be python or node")
 		return
 	}
-	if strings.TrimSpace(in.Startup) != "" {
-		startup = strings.TrimSpace(in.Startup)
+	in.DependencyFile = strings.TrimSpace(in.DependencyFile)
+	in.MainFile = strings.TrimSpace(in.MainFile)
+	in.InstallCommand = strings.TrimSpace(in.InstallCommand)
+	in.Startup = strings.TrimSpace(in.Startup)
+	if in.DependencyFile == "" {
+		in.DependencyFile = defaults.DependencyFile
 	}
-	if len(startup) > 4096 {
-		writeError(w, 400, "startup command is too long")
+	if in.MainFile == "" {
+		in.MainFile = defaults.MainFile
+	}
+	if in.InstallCommand == "" {
+		in.InstallCommand = defaults.InstallCommand
+	}
+	if in.Startup == "" {
+		in.Startup = defaults.Startup
+	}
+	if !validBotFile(in.DependencyFile, true) || !validBotFile(in.MainFile, false) {
+		writeError(w, 400, "invalid dependency or main file path")
+		return
+	}
+	if len(in.InstallCommand) > 8192 || len(in.Startup) > 8192 {
+		writeError(w, 400, "install/startup command is too long")
 		return
 	}
 	if in.MemoryMB == 0 {
@@ -317,7 +375,11 @@ func (a *App) createBot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now().UTC()
-	b := Bot{ID: id, Name: in.Name, Runtime: in.Runtime, Image: image, Startup: startup, MemoryMB: in.MemoryMB, CPUs: in.CPUs, CreatedAt: now, UpdatedAt: now, Status: "offline"}
+	b := Bot{
+		ID: id, Name: in.Name, Runtime: in.Runtime, Image: defaults.Image,
+		DependencyFile: in.DependencyFile, MainFile: in.MainFile, InstallCommand: in.InstallCommand, Startup: in.Startup,
+		MemoryMB: in.MemoryMB, CPUs: in.CPUs, CreatedAt: now, UpdatedAt: now, Status: "offline",
+	}
 	if err := a.docker.PrepareDataDir(id); err != nil {
 		writeError(w, 500, "could not prepare bot directory")
 		return
@@ -341,7 +403,9 @@ func (a *App) getBot(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
-	b.Status = a.docker.Status(ctx, b.ID)
+	state := a.docker.State(ctx, b.ID)
+	b.Status = state.Status
+	b.State = &state
 	writeJSON(w, 200, map[string]any{"bot": b})
 }
 
@@ -353,18 +417,24 @@ func (a *App) updateBot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Name     string  `json:"name"`
-		Startup  string  `json:"startup"`
-		MemoryMB int     `json:"memory_mb"`
-		CPUs     float64 `json:"cpus"`
+		Name           string  `json:"name"`
+		DependencyFile string  `json:"dependency_file"`
+		MainFile       string  `json:"main_file"`
+		InstallCommand string  `json:"install_command"`
+		Startup        string  `json:"startup"`
+		MemoryMB       int     `json:"memory_mb"`
+		CPUs           float64 `json:"cpus"`
 	}
 	if err := decodeJSON(r, &in); err != nil {
 		writeError(w, 400, err.Error())
 		return
 	}
 	in.Name = strings.TrimSpace(in.Name)
+	in.DependencyFile = strings.TrimSpace(in.DependencyFile)
+	in.MainFile = strings.TrimSpace(in.MainFile)
+	in.InstallCommand = strings.TrimSpace(in.InstallCommand)
 	in.Startup = strings.TrimSpace(in.Startup)
-	if in.Name == "" || len(in.Name) > 64 || in.Startup == "" || len(in.Startup) > 4096 {
+	if in.Name == "" || len(in.Name) > 64 || !validBotFile(in.DependencyFile, true) || !validBotFile(in.MainFile, false) || in.Startup == "" || len(in.Startup) > 8192 || len(in.InstallCommand) > 8192 {
 		writeError(w, 400, "invalid bot settings")
 		return
 	}
@@ -372,11 +442,11 @@ func (a *App) updateBot(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "invalid resource limits")
 		return
 	}
-	if err := a.db.UpdateBot(id, in.Name, in.Startup, in.MemoryMB, in.CPUs); err != nil {
+	if err := a.db.UpdateBot(id, in.Name, in.DependencyFile, in.MainFile, in.InstallCommand, in.Startup, in.MemoryMB, in.CPUs); err != nil {
 		writeError(w, 500, "could not save bot")
 		return
 	}
-	b.Name, b.Startup, b.MemoryMB, b.CPUs = in.Name, in.Startup, in.MemoryMB, in.CPUs
+	b.Name, b.DependencyFile, b.MainFile, b.InstallCommand, b.Startup, b.MemoryMB, b.CPUs = in.Name, in.DependencyFile, in.MainFile, in.InstallCommand, in.Startup, in.MemoryMB, in.CPUs
 	env, _ := a.db.GetEnv(id)
 	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Minute)
 	defer cancel()
@@ -384,7 +454,9 @@ func (a *App) updateBot(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 500, "settings saved, but container rebuild failed: "+err.Error())
 		return
 	}
-	b.Status = a.docker.Status(ctx, id)
+	state := a.docker.State(ctx, id)
+	b.Status = state.Status
+	b.State = &state
 	writeJSON(w, 200, map[string]any{"bot": b})
 }
 
@@ -433,6 +505,11 @@ func (a *App) botAction(w http.ResponseWriter, r *http.Request) {
 		err = a.docker.Restart(ctx, *b, env)
 	case "rebuild":
 		err = a.docker.RecreateContainer(ctx, *b, env)
+	case "reinstall":
+		err = a.docker.ResetDependencyCache(id)
+		if err == nil {
+			err = a.docker.Restart(ctx, *b, env)
+		}
 	default:
 		writeError(w, 400, "unknown action")
 		return
@@ -441,7 +518,8 @@ func (a *App) botAction(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 500, err.Error())
 		return
 	}
-	writeJSON(w, 200, map[string]any{"ok": true, "status": a.docker.Status(ctx, id)})
+	state := a.docker.State(ctx, id)
+	writeJSON(w, 200, map[string]any{"ok": true, "status": state.Status, "state": state})
 }
 
 func (a *App) botStats(w http.ResponseWriter, r *http.Request) {
@@ -512,7 +590,8 @@ func (a *App) putEnv(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) execBot(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if _, err := a.db.GetBot(id); err != nil {
+	b, err := a.db.GetBot(id)
+	if err != nil {
 		writeError(w, 404, "bot not found")
 		return
 	}
@@ -528,7 +607,7 @@ func (a *App) execBot(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "invalid command")
 		return
 	}
-	out, err := a.docker.Exec(r.Context(), id, in.Command)
+	out, err := a.docker.Exec(r.Context(), *b, in.Command)
 	if err != nil {
 		writeJSON(w, 200, map[string]any{"ok": false, "output": out, "error": err.Error()})
 		return
@@ -571,6 +650,15 @@ func (a *App) consoleSSE(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 		if readErr != nil {
+			state := a.docker.State(context.Background(), id)
+			message := fmt.Sprintf("container stopped (exit %d)", state.ExitCode)
+			if state.OOMKilled {
+				message = fmt.Sprintf("container was killed by the memory limit (OOM, exit %d). Increase RAM or reduce memory usage", state.ExitCode)
+			} else if state.Error != "" {
+				message += ": " + state.Error
+			}
+			fmt.Fprintf(w, "event: system\ndata: %s\n\n", sseEscape(message))
+			flusher.Flush()
 			return
 		}
 	}

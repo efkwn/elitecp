@@ -2,68 +2,128 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f8fc">
+  <meta name="color-scheme" content="light">
   <title>eLite CP</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div id="toast" class="toast"></div>
+  <div id="toast" class="toast" aria-live="polite"></div>
 
   <section id="loginView" class="login-shell hidden">
-    <div class="login-card">
-      <div class="brand brand-large"><span class="brand-mark">e</span><span>eLite CP</span></div>
-      <p class="muted">Botlarını sade, hızlı ve güvenli şekilde yönet.</p>
-      <form id="loginForm" class="stack gap-lg">
-        <label>Kullanıcı adı<input id="loginUser" autocomplete="username" required placeholder="admin"></label>
-        <label>Şifre<input id="loginPass" type="password" autocomplete="current-password" required placeholder="••••••••••"></label>
-        <button class="btn primary wide" type="submit">Giriş Yap</button>
-      </form>
-      <div class="login-foot">Python · Node.js · Docker</div>
+    <div class="login-visual">
+      <div class="login-badge"><svg class="icon"><use href="/icons.svg#shield"></use></svg> Docker ile izole runtime</div>
+      <h1>Botlarını hızlı, sade ve tek panelden yönet.</h1>
+      <p>Discord ve Telegram botları için Python / Node.js odaklı hafif kontrol paneli.</p>
+      <div class="login-features">
+        <span><svg class="icon"><use href="/icons.svg#terminal"></use></svg> Canlı console</span>
+        <span><svg class="icon"><use href="/icons.svg#package"></use></svg> Otomatik dependency kurulumu</span>
+        <span><svg class="icon"><use href="/icons.svg#folder"></use></svg> Dosya yöneticisi</span>
+      </div>
+    </div>
+
+    <div class="login-card-wrap">
+      <div class="login-card">
+        <div class="brand brand-large">
+          <span class="brand-mark"><svg class="icon"><use href="/icons.svg#logo"></use></svg></span>
+          <span>eLite CP</span>
+        </div>
+        <div class="login-copy">
+          <h2>Tekrar hoş geldin</h2>
+          <p>Kontrol paneline devam etmek için giriş yap.</p>
+        </div>
+        <form id="loginForm" class="stack gap-lg">
+          <label>Kullanıcı adı<input id="loginUser" autocomplete="username" required placeholder="admin"></label>
+          <label>Şifre<input id="loginPass" type="password" autocomplete="current-password" required placeholder="••••••••••"></label>
+          <button class="btn primary wide" type="submit"><svg class="icon"><use href="/icons.svg#login"></use></svg> Giriş Yap</button>
+        </form>
+        <div class="login-foot">eLite CP · Go · SQLite · Docker</div>
+      </div>
     </div>
   </section>
 
   <div id="appView" class="app-shell hidden">
+    <button id="sidebarBackdrop" class="sidebar-backdrop" aria-label="Menüyü kapat"></button>
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">e</span><span>eLite CP</span></div>
+      <div class="brand sidebar-brand">
+        <span class="brand-mark"><svg class="icon"><use href="/icons.svg#logo"></use></svg></span>
+        <div><span>eLite CP</span><small>Bot Control Panel</small></div>
+      </div>
+
       <nav class="nav">
-        <button class="nav-item active" data-view="dashboard"><span>⌂</span> Dashboard</button>
-        <button class="nav-item" data-view="bots"><span>◫</span> Botlar</button>
+        <button class="nav-item active" data-view="dashboard"><svg class="icon"><use href="/icons.svg#dashboard"></use></svg><span>Dashboard</span></button>
+        <button class="nav-item" data-view="bots"><svg class="icon"><use href="/icons.svg#bot"></use></svg><span>Botlar</span><span id="botCountBadge" class="nav-count">0</span></button>
       </nav>
+
       <div class="sidebar-spacer"></div>
-      <div class="sidebar-status"><span id="dockerDot" class="dot"></span><span id="dockerText">Docker kontrol ediliyor</span></div>
-      <button id="logoutBtn" class="nav-item danger"><span>↗</span> Çıkış</button>
+      <div class="sidebar-status">
+        <span id="dockerDot" class="dot"></span>
+        <div><b id="dockerText">Docker kontrol ediliyor</b><small>Container runtime</small></div>
+      </div>
+      <button id="logoutBtn" class="nav-item danger"><svg class="icon"><use href="/icons.svg#logout"></use></svg><span>Çıkış Yap</span></button>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <button id="mobileMenu" class="icon-btn mobile-only">☰</button>
-        <div><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle" class="muted">Bot altyapının kısa özeti.</p></div>
-        <div class="top-actions"><span id="userChip" class="chip"></span><button id="newBotBtn" class="btn primary">+ Yeni Bot</button></div>
+        <div class="topbar-left">
+          <button id="mobileMenu" class="icon-btn mobile-only" aria-label="Menüyü aç"><svg class="icon"><use href="/icons.svg#menu"></use></svg></button>
+          <div class="topbar-copy"><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Bot altyapının kısa özeti.</p></div>
+        </div>
+        <div class="top-actions">
+          <span id="userChip" class="user-chip"></span>
+          <button id="newBotBtn" class="btn primary"><svg class="icon"><use href="/icons.svg#plus"></use></svg><span class="btn-label">Yeni Bot</span></button>
+        </div>
       </header>
       <div id="content" class="content"></div>
     </main>
   </div>
 
   <dialog id="botDialog" class="dialog">
-    <form id="botForm" method="dialog" class="dialog-card">
-      <div class="dialog-head"><div><h2>Yeni Bot</h2><p class="muted">İlk bot container'ını oluştur.</p></div><button type="button" class="icon-btn" data-close-dialog>×</button></div>
-      <div class="grid two">
-        <label>Bot adı<input name="name" required maxlength="64" placeholder="Discord Bot"></label>
-        <label>Runtime<select name="runtime" id="runtimeSelect"><option value="python">Python 3.12</option><option value="node">Node.js 22</option></select></label>
-        <label>RAM (MB)<input name="memory_mb" type="number" min="64" max="32768" value="512" required></label>
-        <label>CPU<input name="cpus" type="number" min="0.1" max="32" step="0.1" value="0.5" required></label>
+    <form id="botForm" method="dialog" class="dialog-card bot-dialog-card">
+      <div class="dialog-head">
+        <div><span class="eyebrow">YENİ INSTANCE</span><h2>Bot Oluştur</h2><p>Dosyaları yükle; eLite CP dependency adımını çalıştırıp ardından botunu başlatsın.</p></div>
+        <button type="button" class="icon-btn" data-close-dialog aria-label="Kapat"><svg class="icon"><use href="/icons.svg#close"></use></svg></button>
       </div>
-      <label>Başlatma komutu<textarea name="startup" id="startupInput" rows="4"></textarea></label>
-      <div class="dialog-actions"><button type="button" class="btn ghost" data-close-dialog>Vazgeç</button><button type="submit" class="btn primary">Botu Oluştur</button></div>
+
+      <div class="form-section">
+        <div class="form-section-title"><svg class="icon"><use href="/icons.svg#bot"></use></svg> Genel</div>
+        <div class="grid two">
+          <label>Bot adı<input name="name" required maxlength="64" placeholder="Telegram Bot"></label>
+          <label>Runtime<select name="runtime" id="runtimeSelect"><option value="python">Python 3.12</option><option value="node">Node.js 22</option></select></label>
+        </div>
+      </div>
+
+      <div class="form-section startup-section">
+        <div class="form-section-title"><svg class="icon"><use href="/icons.svg#workflow"></use></svg> Startup Planı</div>
+        <div class="pipeline-preview">
+          <span><b>1</b> Runtime hazırlanır</span><i></i><span><b>2</b> Kütüphaneler kurulur</span><i></i><span><b>3</b> Bot başlatılır</span>
+        </div>
+        <div class="grid two">
+          <label>Dependency dosyası<input name="dependency_file" id="dependencyFileInput" placeholder="requirements.txt"><span class="field-help">Python: requirements.txt · Node: package.json</span></label>
+          <label>Ana dosya<input name="main_file" id="mainFileInput" placeholder="bot.py"><span class="field-help">Botu çalıştıran dosya; örn. bot.py / index.js.</span></label>
+        </div>
+        <label>Kurulum komutu<textarea name="install_command" id="installCommandInput" rows="2" spellcheck="false"></textarea><span class="field-help"><code>{{dependency_file}}</code> otomatik dosya yoluna dönüşür.</span></label>
+        <label>Startup komutu<textarea name="startup" id="startupInput" rows="2" spellcheck="false"></textarea><span class="field-help"><code>{{main_file}}</code> otomatik ana dosya yoluna dönüşür. Dependency adımı bundan önce çalışır.</span></label>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title"><svg class="icon"><use href="/icons.svg#cpu"></use></svg> Kaynaklar</div>
+        <div class="grid two">
+          <label>RAM (MB)<input name="memory_mb" type="number" min="64" max="32768" value="512" required></label>
+          <label>CPU<input name="cpus" type="number" min="0.1" max="32" step="0.1" value="0.5" required></label>
+        </div>
+      </div>
+
+      <div class="dialog-actions"><button type="button" class="btn ghost" data-close-dialog>Vazgeç</button><button type="submit" class="btn primary"><svg class="icon"><use href="/icons.svg#plus"></use></svg> Botu Oluştur</button></div>
     </form>
   </dialog>
 
   <dialog id="editorDialog" class="dialog editor-dialog">
     <div class="dialog-card editor-card">
-      <div class="dialog-head"><div><h2 id="editorTitle">Dosya</h2><p id="editorPath" class="muted mono"></p></div><button type="button" class="icon-btn" id="closeEditor">×</button></div>
+      <div class="dialog-head"><div><span class="eyebrow">DOSYA EDİTÖRÜ</span><h2 id="editorTitle">Dosya</h2><p id="editorPath" class="mono"></p></div><button type="button" class="icon-btn" id="closeEditor"><svg class="icon"><use href="/icons.svg#close"></use></svg></button></div>
       <textarea id="fileEditor" class="code-editor" spellcheck="false"></textarea>
-      <div class="dialog-actions"><button type="button" class="btn ghost" id="cancelEditor">Kapat</button><button type="button" class="btn primary" id="saveEditor">Kaydet</button></div>
+      <div class="dialog-actions"><button type="button" class="btn ghost" id="cancelEditor">Kapat</button><button type="button" class="btn primary" id="saveEditor"><svg class="icon"><use href="/icons.svg#save"></use></svg> Kaydet</button></div>
     </div>
   </dialog>
 

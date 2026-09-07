@@ -46,12 +46,12 @@ func TestAdminAuthAndSession(t *testing.T) {
 func TestBotAndEnvCRUD(t *testing.T) {
 	db := testDB(t)
 	now := time.Now().UTC().Truncate(time.Microsecond)
-	bot := Bot{ID: "abc12345", Name: "Bot", Runtime: "python", Image: "python:3.12-slim-bookworm", Startup: "python main.py", MemoryMB: 256, CPUs: .5, CreatedAt: now, UpdatedAt: now}
+	bot := Bot{ID: "abc12345", Name: "Bot", Runtime: "python", Image: "python:3.12-slim-bookworm", DependencyFile: "requirements.txt", MainFile: "bot.py", InstallCommand: "python -m pip install -r {{dependency_file}}", Startup: "python {{main_file}}", MemoryMB: 256, CPUs: .5, CreatedAt: now, UpdatedAt: now}
 	if err := db.CreateBot(bot); err != nil {
 		t.Fatal(err)
 	}
 	got, err := db.GetBot(bot.ID)
-	if err != nil || got.Name != "Bot" {
+	if err != nil || got.Name != "Bot" || got.MainFile != "bot.py" || got.DependencyFile != "requirements.txt" {
 		t.Fatalf("get bot: %v %v", got, err)
 	}
 	env := []EnvVar{{Key: "TOKEN", Value: "secret"}, {Key: "MODE", Value: "prod"}}

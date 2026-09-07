@@ -91,7 +91,7 @@ func (a *App) listFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]FileEntry, 0, len(entries))
 	for _, entry := range entries {
-		if entry.Name() == ".home" || entry.Name() == ".elitecp-venv" {
+		if entry.Name() == ".home" || entry.Name() == ".elitecp" || entry.Name() == ".elitecp-venv" {
 			continue
 		}
 		info, err := entry.Info()

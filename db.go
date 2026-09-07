@@ -36,16 +36,20 @@ type User struct {
 }
 
 type Bot struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Runtime   string    `json:"runtime"`
-	Image     string    `json:"image"`
-	Startup   string    `json:"startup"`
-	MemoryMB  int       `json:"memory_mb"`
-	CPUs      float64   `json:"cpus"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Status    string    `json:"status,omitempty"`
+	ID             string       `json:"id"`
+	Name           string       `json:"name"`
+	Runtime        string       `json:"runtime"`
+	Image          string       `json:"image"`
+	DependencyFile string       `json:"dependency_file"`
+	MainFile       string       `json:"main_file"`
+	InstallCommand string       `json:"install_command"`
+	Startup        string       `json:"startup"`
+	MemoryMB       int          `json:"memory_mb"`
+	CPUs           float64      `json:"cpus"`
+	CreatedAt      time.Time    `json:"created_at"`
+	UpdatedAt      time.Time    `json:"updated_at"`
+	Status         string       `json:"status,omitempty"`
+	State          *DockerState `json:"state,omitempty"`
 }
 
 type EnvVar struct {
@@ -134,6 +138,24 @@ func (db *DB) migrate() error {
 			return err
 		}
 	}
+	// v0.2.0: split dependency installation from the startup command.
+	// ADD COLUMN is intentionally tolerant so existing v0.1 databases upgrade in place.
+	for _, alter := range []string{
+		`ALTER TABLE bots ADD COLUMN dependency_file TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE bots ADD COLUMN main_file TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE bots ADD COLUMN install_command TEXT NOT NULL DEFAULT ''`,
+	} {
+		if err := db.exec(alter); err != nil && !strings.Contains(strings.ToLower(err.Error()), "duplicate column name") {
+			return err
+		}
+	}
+
+	// Fill safe v0.2 defaults for bots created by v0.1. Existing custom startup
+	// commands are preserved; only the exact old generated defaults are simplified.
+	_ = db.exec(`UPDATE bots SET dependency_file='requirements.txt', main_file='main.py', install_command='python -m pip install --disable-pip-version-check -r {{dependency_file}}' WHERE runtime='python' AND dependency_file=''`)
+	_ = db.exec(`UPDATE bots SET dependency_file='package.json', main_file='index.js', install_command='if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi' WHERE runtime='node' AND dependency_file=''`)
+	_ = db.exec(`UPDATE bots SET startup='python {{main_file}}' WHERE runtime='python' AND startup='mkdir -p .home .elitecp-venv && python -m venv .elitecp-venv && . .elitecp-venv/bin/activate && if [ -f requirements.txt ]; then pip install --disable-pip-version-check --no-cache-dir -r requirements.txt; fi && exec python main.py'`)
+	_ = db.exec(`UPDATE bots SET startup='node {{main_file}}' WHERE runtime='node' AND startup='mkdir -p .home && if [ -f package-lock.json ]; then npm ci --omit=dev; elif [ -f package.json ]; then npm install --omit=dev; fi && exec npm start'`)
 	return nil
 }
 
@@ -358,7 +380,7 @@ func (db *DB) DeleteSession(token string) { _ = db.exec(`DELETE FROM sessions WH
 func (db *DB) ListBots() ([]Bot, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
-	st, err := db.prepareLocked(`SELECT id,name,runtime,image,startup,memory_mb,cpus,created_at,updated_at FROM bots ORDER BY created_at DESC`)
+	st, err := db.prepareLocked(`SELECT id,name,runtime,image,dependency_file,main_file,install_command,startup,memory_mb,cpus,created_at,updated_at FROM bots ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -373,8 +395,9 @@ func (db *DB) ListBots() ([]Bot, error) {
 			return nil, errors.New(C.GoString(C.sqlite3_errmsg(db.conn)))
 		}
 		out = append(out, Bot{
-			ID: colText(st, 0), Name: colText(st, 1), Runtime: colText(st, 2), Image: colText(st, 3), Startup: colText(st, 4),
-			MemoryMB: int(colInt64(st, 5)), CPUs: colFloat(st, 6), CreatedAt: parseDBTime(colText(st, 7)), UpdatedAt: parseDBTime(colText(st, 8)),
+			ID: colText(st, 0), Name: colText(st, 1), Runtime: colText(st, 2), Image: colText(st, 3),
+			DependencyFile: colText(st, 4), MainFile: colText(st, 5), InstallCommand: colText(st, 6), Startup: colText(st, 7),
+			MemoryMB: int(colInt64(st, 8)), CPUs: colFloat(st, 9), CreatedAt: parseDBTime(colText(st, 10)), UpdatedAt: parseDBTime(colText(st, 11)),
 		})
 	}
 	return out, nil
@@ -383,7 +406,7 @@ func (db *DB) ListBots() ([]Bot, error) {
 func (db *DB) GetBot(id string) (*Bot, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
-	st, err := db.prepareLocked(`SELECT id,name,runtime,image,startup,memory_mb,cpus,created_at,updated_at FROM bots WHERE id=?`)
+	st, err := db.prepareLocked(`SELECT id,name,runtime,image,dependency_file,main_file,install_command,startup,memory_mb,cpus,created_at,updated_at FROM bots WHERE id=?`)
 	if err != nil {
 		return nil, err
 	}
@@ -395,20 +418,22 @@ func (db *DB) GetBot(id string) (*Bot, error) {
 		return nil, ErrNotFound
 	}
 	return &Bot{
-		ID: colText(st, 0), Name: colText(st, 1), Runtime: colText(st, 2), Image: colText(st, 3), Startup: colText(st, 4),
-		MemoryMB: int(colInt64(st, 5)), CPUs: colFloat(st, 6), CreatedAt: parseDBTime(colText(st, 7)), UpdatedAt: parseDBTime(colText(st, 8)),
+		ID: colText(st, 0), Name: colText(st, 1), Runtime: colText(st, 2), Image: colText(st, 3),
+		DependencyFile: colText(st, 4), MainFile: colText(st, 5), InstallCommand: colText(st, 6), Startup: colText(st, 7),
+		MemoryMB: int(colInt64(st, 8)), CPUs: colFloat(st, 9), CreatedAt: parseDBTime(colText(st, 10)), UpdatedAt: parseDBTime(colText(st, 11)),
 	}, nil
 }
 
 func (db *DB) CreateBot(b Bot) error {
-	return db.exec(`INSERT INTO bots(id,name,runtime,image,startup,memory_mb,cpus,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`,
-		b.ID, b.Name, b.Runtime, b.Image, b.Startup, b.MemoryMB, b.CPUs, b.CreatedAt, b.UpdatedAt)
+	return db.exec(`INSERT INTO bots(id,name,runtime,image,dependency_file,main_file,install_command,startup,memory_mb,cpus,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+		b.ID, b.Name, b.Runtime, b.Image, b.DependencyFile, b.MainFile, b.InstallCommand, b.Startup, b.MemoryMB, b.CPUs, b.CreatedAt, b.UpdatedAt)
 }
 
 func (db *DB) DeleteBot(id string) error { return db.exec(`DELETE FROM bots WHERE id=?`, id) }
 
-func (db *DB) UpdateBot(id, name, startup string, memory int, cpus float64) error {
-	return db.exec(`UPDATE bots SET name=?,startup=?,memory_mb=?,cpus=?,updated_at=? WHERE id=?`, name, startup, memory, cpus, time.Now().UTC(), id)
+func (db *DB) UpdateBot(id, name, dependencyFile, mainFile, installCommand, startup string, memory int, cpus float64) error {
+	return db.exec(`UPDATE bots SET name=?,dependency_file=?,main_file=?,install_command=?,startup=?,memory_mb=?,cpus=?,updated_at=? WHERE id=?`,
+		name, dependencyFile, mainFile, installCommand, startup, memory, cpus, time.Now().UTC(), id)
 }
 
 func (db *DB) GetEnv(botID string) ([]EnvVar, error) {

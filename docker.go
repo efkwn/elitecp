@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,6 +31,18 @@ type DockerStats struct {
 	NetIO    string `json:"network"`
 	PIDs     string `json:"pids"`
 }
+
+type DockerState struct {
+	Status     string `json:"status"`
+	Running    bool   `json:"running"`
+	OOMKilled  bool   `json:"oom_killed"`
+	ExitCode   int    `json:"exit_code"`
+	Error      string `json:"error,omitempty"`
+	StartedAt  string `json:"started_at,omitempty"`
+	FinishedAt string `json:"finished_at,omitempty"`
+}
+
+const containerRuntimeSchema = "2"
 
 var safeID = regexp.MustCompile(`^[a-zA-Z0-9_-]{4,64}$`)
 
@@ -83,9 +96,95 @@ func (d *DockerManager) EnsureContainer(ctx context.Context, b Bot, env []EnvVar
 		return err
 	}
 	if d.containerExists(ctx, name) {
-		return nil
+		out, labelErr := d.run(ctx, "inspect", "--format", `{{index .Config.Labels "elitecp.runtime_schema"}}`, name)
+		if labelErr == nil && strings.TrimSpace(out) == containerRuntimeSchema {
+			return nil
+		}
+		// Containers created by an older eLite CP release keep their original
+		// Docker command forever. Recreate them once so the new startup pipeline
+		// (dependency install + per-bot runtime isolation) becomes active.
+		return d.RecreateContainer(ctx, b, env)
 	}
 	return d.createContainer(ctx, b, env)
+}
+
+func shellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'"
+}
+
+func renderBotCommand(command string, b Bot) string {
+	command = strings.ReplaceAll(command, "{{dependency_file}}", shellQuote(b.DependencyFile))
+	command = strings.ReplaceAll(command, "{{main_file}}", shellQuote(b.MainFile))
+	return command
+}
+
+func (d *DockerManager) bootstrapCommand(b Bot) string {
+	installCmd := strings.TrimSpace(renderBotCommand(b.InstallCommand, b))
+	startupCmd := strings.TrimSpace(renderBotCommand(b.Startup, b))
+	depFile := strings.TrimSpace(b.DependencyFile)
+	planHash := fmt.Sprintf("%x", sha256.Sum256([]byte(b.Runtime+"\x00"+b.DependencyFile+"\x00"+b.InstallCommand)))[:16]
+	stamp := "/app/.elitecp/deps-" + planHash + ".sha256"
+
+	var script strings.Builder
+	script.WriteString("set -eu\n")
+	script.WriteString("printf '\\n[eLite CP] ────────────────────────────────────────\\n'\n")
+	script.WriteString("printf '[eLite CP] Startup pipeline started\\n'\n")
+	script.WriteString("printf '[eLite CP] Runtime: " + b.Runtime + "\\n'\n")
+	script.WriteString("printf '[eLite CP] Working directory: /app\\n'\n")
+	script.WriteString("mkdir -p /app/.elitecp /app/.home\n")
+
+	if b.Runtime == "python" {
+		script.WriteString("printf '[eLite CP] [1/3] Preparing isolated Python environment...\\n'\n")
+		script.WriteString("if [ ! -x /app/.elitecp/venv/bin/python ]; then\n")
+		script.WriteString("  printf '[eLite CP] Creating per-bot venv at /app/.elitecp/venv\\n'\n")
+		script.WriteString("  python -m venv /app/.elitecp/venv\n")
+		script.WriteString("fi\n")
+		script.WriteString(". /app/.elitecp/venv/bin/activate\n")
+		script.WriteString("printf '[eLite CP] Python: '; python --version 2>&1\n")
+		script.WriteString("printf '[eLite CP] Pip: '; python -m pip --version 2>&1\n")
+	} else if b.Runtime == "node" {
+		script.WriteString("printf '[eLite CP] [1/3] Preparing isolated Node.js environment...\\n'\n")
+		script.WriteString("printf '[eLite CP] Node: '; node --version 2>&1\n")
+		script.WriteString("printf '[eLite CP] npm: '; npm --version 2>&1\n")
+	}
+
+	script.WriteString("printf '[eLite CP] [2/3] Checking dependencies...\\n'\n")
+	if depFile != "" && installCmd != "" {
+		depQuoted := shellQuote(depFile)
+		stampQuoted := shellQuote(stamp)
+		script.WriteString("if [ -f " + depQuoted + " ]; then\n")
+		if b.Runtime == "node" {
+			script.WriteString("  hash_input=\"$({ sha256sum " + depQuoted + "; [ -f package-lock.json ] && sha256sum package-lock.json || true; [ -f npm-shrinkwrap.json ] && sha256sum npm-shrinkwrap.json || true; })\"\n")
+			script.WriteString("  current_hash=\"$(printf '%s' \"$hash_input\" | sha256sum)\"; current_hash=\"${current_hash%% *}\"\n")
+		} else {
+			script.WriteString("  current_hash=\"$(sha256sum " + depQuoted + ")\"; current_hash=\"${current_hash%% *}\"\n")
+		}
+		script.WriteString("  previous_hash=\"$(cat " + stampQuoted + " 2>/dev/null || true)\"\n")
+		script.WriteString("  if [ \"$current_hash\" != \"$previous_hash\" ]; then\n")
+		script.WriteString("    printf '[eLite CP] Dependency file: " + strings.ReplaceAll(depFile, "'", "") + "\\n'\n")
+		script.WriteString("    printf '[eLite CP] Install command: %s\\n' " + shellQuote(installCmd) + "\n")
+		script.WriteString("    printf '[eLite CP] Installing dependencies...\\n'\n")
+		script.WriteString("    if " + installCmd + "; then\n")
+		script.WriteString("      printf '%s' \"$current_hash\" > " + stampQuoted + "\n")
+		script.WriteString("      printf '[eLite CP] Dependencies installed successfully.\\n'\n")
+		script.WriteString("    else\n")
+		script.WriteString("      code=$?; printf '[eLite CP] ERROR: dependency installation failed (exit %s).\\n' \"$code\"; exit \"$code\"\n")
+		script.WriteString("    fi\n")
+		script.WriteString("  else\n")
+		script.WriteString("    printf '[eLite CP] Dependencies unchanged; install skipped.\\n'\n")
+		script.WriteString("  fi\n")
+		script.WriteString("else\n")
+		script.WriteString("  printf '[eLite CP] Dependency file not found: " + strings.ReplaceAll(depFile, "'", "") + " (install skipped)\\n'\n")
+		script.WriteString("fi\n")
+	} else {
+		script.WriteString("printf '[eLite CP] No dependency install step configured.\\n'\n")
+	}
+
+	script.WriteString("printf '[eLite CP] [3/3] Starting application...\\n'\n")
+	script.WriteString("printf '[eLite CP] Startup command: %s\\n' " + shellQuote(startupCmd) + "\n")
+	script.WriteString("printf '[eLite CP] ────────────────────────────────────────\\n\\n'\n")
+	script.WriteString("exec " + startupCmd + "\n")
+	return script.String()
 }
 
 func (d *DockerManager) createContainer(ctx context.Context, b Bot, env []EnvVar) error {
@@ -110,6 +209,7 @@ func (d *DockerManager) createContainer(ctx context.Context, b Bot, env []EnvVar
 		"--name", name,
 		"--label", "elitecp.managed=true",
 		"--label", "elitecp.bot_id=" + b.ID,
+		"--label", "elitecp.runtime_schema=" + containerRuntimeSchema,
 		"--restart", "unless-stopped",
 		"--memory", fmt.Sprintf("%dm", b.MemoryMB),
 		"--cpus", strconv.FormatFloat(b.CPUs, 'f', 2, 64),
@@ -123,11 +223,14 @@ func (d *DockerManager) createContainer(ctx context.Context, b Bot, env []EnvVar
 		"--env", "HOME=/app/.home",
 		"--env", "PYTHONDONTWRITEBYTECODE=1",
 		"--env", "PYTHONUNBUFFERED=1",
+		"--env", "PIP_DISABLE_PIP_VERSION_CHECK=1",
+		"--env", "PIP_CACHE_DIR=/app/.home/.cache/pip",
+		"--env", "NPM_CONFIG_CACHE=/app/.home/.cache/npm",
 	}
 	for _, e := range env {
 		args = append(args, "--env", e.Key+"="+e.Value)
 	}
-	args = append(args, b.Image, "/bin/sh", "-lc", b.Startup)
+	args = append(args, b.Image, "/bin/sh", "-lc", d.bootstrapCommand(b))
 	_, err = d.run(ctx, args...)
 	return err
 }
@@ -179,8 +282,29 @@ func (d *DockerManager) Restart(ctx context.Context, b Bot, env []EnvVar) error 
 		return err
 	}
 	name, _ := d.containerName(b.ID)
+	if d.Status(ctx, b.ID) != "running" {
+		_, err := d.run(ctx, "start", name)
+		return err
+	}
 	_, err := d.run(ctx, "restart", "--time", "10", name)
 	return err
+}
+
+func (d *DockerManager) ResetDependencyCache(id string) error {
+	appDir, err := d.AppDir(id)
+	if err != nil {
+		return err
+	}
+	matches, err := filepath.Glob(filepath.Join(appDir, ".elitecp", "deps-*.sha256"))
+	if err != nil {
+		return err
+	}
+	for _, match := range matches {
+		if err := os.Remove(match); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	return nil
 }
 
 func (d *DockerManager) Remove(ctx context.Context, id string, deleteFiles bool) error {
@@ -200,20 +324,36 @@ func (d *DockerManager) Remove(ctx context.Context, id string, deleteFiles bool)
 	return nil
 }
 
-func (d *DockerManager) Status(ctx context.Context, id string) string {
+func (d *DockerManager) State(ctx context.Context, id string) DockerState {
 	name, err := d.containerName(id)
 	if err != nil {
-		return "unknown"
+		return DockerState{Status: "unknown", ExitCode: -1, Error: err.Error()}
 	}
-	out, err := d.run(ctx, "inspect", "--format", "{{.State.Status}}", name)
+	out, err := d.run(ctx, "inspect", "--format", "{{json .State}}", name)
 	if err != nil {
-		return "offline"
+		return DockerState{Status: "offline", ExitCode: -1}
 	}
-	s := strings.TrimSpace(out)
-	if s == "created" || s == "exited" || s == "dead" {
-		return "offline"
+	var raw struct {
+		Status     string `json:"Status"`
+		Running    bool   `json:"Running"`
+		OOMKilled  bool   `json:"OOMKilled"`
+		ExitCode   int    `json:"ExitCode"`
+		Error      string `json:"Error"`
+		StartedAt  string `json:"StartedAt"`
+		FinishedAt string `json:"FinishedAt"`
 	}
-	return s
+	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &raw); err != nil {
+		return DockerState{Status: "unknown", ExitCode: -1, Error: err.Error()}
+	}
+	status := raw.Status
+	if status == "created" || status == "exited" || status == "dead" {
+		status = "offline"
+	}
+	return DockerState{Status: status, Running: raw.Running, OOMKilled: raw.OOMKilled, ExitCode: raw.ExitCode, Error: raw.Error, StartedAt: raw.StartedAt, FinishedAt: raw.FinishedAt}
+}
+
+func (d *DockerManager) Status(ctx context.Context, id string) string {
+	return d.State(ctx, id).Status
 }
 
 func (d *DockerManager) Stats(ctx context.Context, id string) (DockerStats, error) {
@@ -241,17 +381,26 @@ func (d *DockerManager) Stats(ctx context.Context, id string) (DockerStats, erro
 	return DockerStats{CPUPerc: raw.CPUPerc, MemUsage: raw.MemUsage, MemPerc: raw.MemPerc, NetIO: raw.NetIO, PIDs: raw.PIDs}, nil
 }
 
-func (d *DockerManager) Exec(ctx context.Context, id, command string) (string, error) {
-	name, err := d.containerName(id)
+func (d *DockerManager) Exec(ctx context.Context, b Bot, command string) (string, error) {
+	name, err := d.containerName(b.ID)
 	if err != nil {
 		return "", err
 	}
-	if d.Status(ctx, id) != "running" {
+	if d.Status(ctx, b.ID) != "running" {
 		return "", errors.New("bot is not running")
 	}
 	ctx, cancel := context.WithTimeout(ctx, 25*time.Second)
 	defer cancel()
-	return d.runLimited(ctx, 256*1024, "exec", name, "/bin/sh", "-lc", command)
+
+	// Interactive commands should use the same per-bot runtime environment as
+	// the startup pipeline. This keeps `pip`, `python`, npm cache and HOME scoped
+	// to the bot instead of the host or a different interpreter.
+	wrapped := "export HOME=/app/.home; cd /app; "
+	if b.Runtime == "python" {
+		wrapped += "if [ -f /app/.elitecp/venv/bin/activate ]; then . /app/.elitecp/venv/bin/activate; fi; "
+	}
+	wrapped += command
+	return d.runLimited(ctx, 256*1024, "exec", name, "/bin/sh", "-lc", wrapped)
 }
 
 func (d *DockerManager) StartLogs(ctx context.Context, id string, tail int) (io.ReadCloser, func(), error) {
