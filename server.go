@@ -236,8 +236,19 @@ func (a *App) me(w http.ResponseWriter, r *http.Request) {
 func (a *App) systemInfo(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 	defer cancel()
-	err := a.docker.Ping(ctx)
-	writeJSON(w, 200, map[string]any{"version": version, "docker_ok": err == nil, "data_dir": a.cfg.DataDir})
+	dockerErr := a.docker.Ping(ctx)
+
+	payload := map[string]any{
+		"version":   version,
+		"docker_ok": dockerErr == nil,
+		"data_dir":  a.cfg.DataDir,
+	}
+	if metrics, err := collectSystemSnapshot("/"); err == nil {
+		payload["metrics"] = metrics
+	} else {
+		payload["metrics_error"] = err.Error()
+	}
+	writeJSON(w, 200, payload)
 }
 
 func (a *App) listBots(w http.ResponseWriter, r *http.Request) {

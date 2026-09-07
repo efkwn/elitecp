@@ -1,39 +1,26 @@
-# eLite CP v0.2.0 Upgrade
+# eLite CP v0.3.0 Upgrade
 
-1. Bu paketin içeriğini GitHub repository `main` branch'ine yükle.
-2. VPS'de root olarak çalıştır:
+Bu sürüm veritabanı veya bot dosya formatını bozmaz. Mevcut v0.2.0 kurulumunun üzerine güvenli şekilde güncellenebilir.
 
-```bash
-sudo /opt/elitecp/src/update.sh
-```
-
-3. Sürümü kontrol et:
+Repository `main` branch'ine v0.3.0 dosyalarını yükledikten sonra VPS'te:
 
 ```bash
-/usr/local/bin/elitecp version
+curl -fsSL https://raw.githubusercontent.com/efkwn/elitecp/main/update.sh -o /tmp/elitecp-update.sh && sudo bash /tmp/elitecp-update.sh
 ```
 
-Beklenen çıktı:
+Updater SQLite yedeği alır, GitHub `main` branch'ini çeker, test/build yapar ve `elitecp` systemd servisini yeniden başlatır.
+
+Güncellemeden sonra Dashboard'da CPU, RAM, disk ve VPS uptime kartları görünür. Metrikler Linux `/proc` ve `statfs` üzerinden okunur; ekstra daemon veya paket gerekmez.
+
+Kontrol:
+
+```bash
+elitecp version
+systemctl status elitecp --no-pager
+```
+
+Beklenen sürüm:
 
 ```text
-eLite CP 0.2.0
+eLite CP 0.3.0
 ```
-
-Mevcut botlar ve SQLite verileri silinmez. Updater önce `/var/lib/elitecp/backups/` altına veritabanı yedeği alır; uygulama açılırken v0.2 alanları otomatik migrate edilir.
-
-## Python bot örneği
-
-```text
-Dependency File: requirements.txt
-Main File: bot.py
-Install Command: python -m pip install --disable-pip-version-check -r {{dependency_file}}
-Startup Command: python {{main_file}}
-```
-
-`bot.py` içinde `import telebot` kullanılıyorsa `requirements.txt` örneği:
-
-```text
-pyTelegramBotAPI
-```
-
-Start'a basıldığında eLite CP sırasıyla per-bot virtualenv'i hazırlar, requirements değişmişse pip install çalıştırır ve ardından `python bot.py` başlatır.

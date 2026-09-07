@@ -11,6 +11,8 @@ const state = {
   console: null,
   statsTimer: null,
   system: null,
+  systemTimer: null,
+  systemHistory: { cpu: [], memory: [], disk: [] },
 };
 
 const runtimeDefaults = {
@@ -65,6 +67,47 @@ function formatBytes(n) {
   let i = 0;
   while (n >= 1024 && i < units.length - 1) { n /= 1024; i += 1; }
   return `${n.toFixed(i ? 1 : 0)} ${units[i]}`;
+}
+
+function formatPercent(v) {
+  const n = Number(v || 0);
+  return `${n.toFixed(n >= 10 ? 0 : 1)}%`;
+}
+
+function formatUptime(seconds) {
+  let s = Math.max(0, Math.floor(Number(seconds || 0)));
+  const days = Math.floor(s / 86400); s %= 86400;
+  const hours = Math.floor(s / 3600); s %= 3600;
+  const mins = Math.floor(s / 60);
+  if (days) return `${days}g ${hours}sa ${mins}dk`;
+  if (hours) return `${hours}sa ${mins}dk`;
+  return `${mins}dk`;
+}
+
+function clamp(v, min = 0, max = 100) {
+  return Math.max(min, Math.min(max, Number(v || 0)));
+}
+
+function pushMetricHistory(metrics) {
+  if (!metrics) return;
+  const values = {
+    cpu: clamp(metrics.cpu_percent),
+    memory: clamp(metrics.memory_percent),
+    disk: clamp(metrics.disk_percent),
+  };
+  Object.entries(values).forEach(([key, value]) => {
+    state.systemHistory[key].push(value);
+    if (state.systemHistory[key].length > 28) state.systemHistory[key].shift();
+  });
+}
+
+function sparkline(values = []) {
+  const list = values.length ? values : [0, 0];
+  const width = 180;
+  const height = 38;
+  const step = list.length > 1 ? width / (list.length - 1) : width;
+  const points = list.map((v, i) => `${(i * step).toFixed(1)},${(height - (clamp(v) / 100) * (height - 4) - 2).toFixed(1)}`).join(' ');
+  return `<svg class="sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}"></polyline></svg>`;
 }
 
 function statusLabel(s) {
@@ -162,11 +205,14 @@ async function refreshSystem() {
   try {
     const s = await api('/api/system');
     state.system = s;
+    pushMetricHistory(s.metrics);
     $('#dockerDot').className = `dot ${s.docker_ok ? 'ok' : 'bad'}`;
     $('#dockerText').textContent = s.docker_ok ? `Docker hazır · v${s.version}` : 'Docker erişilemiyor';
+    return s;
   } catch {
     $('#dockerDot').className = 'dot bad';
     $('#dockerText').textContent = 'Sistem hatası';
+    return null;
   }
 }
 
@@ -178,6 +224,7 @@ async function loadBots() {
 
 function render() {
   clearInterval(state.statsTimer);
+  clearInterval(state.systemTimer);
   if (state.bot) return renderBotDetail();
   if (state.view === 'bots') renderBots();
   else renderDashboard();
@@ -217,12 +264,88 @@ function wireBotCards() {
   });
 }
 
+function serverMetricCardsHTML() {
+  const m = state.system?.metrics;
+  if (!m) {
+    return `<section class="card server-card"><div class="card-head"><h3>Sunucu Kaynakları</h3><span class="muted server-live">Veriler bekleniyor...</span></div><div class="card-body"><div class="empty">Sunucu metrikleri henüz alınamadı.</div></div></section>`;
+  }
+  const cpu = clamp(m.cpu_percent);
+  const memory = clamp(m.memory_percent);
+  const disk = clamp(m.disk_percent);
+  return `<section class="card server-card">
+    <div class="card-head server-card-head">
+      <div><h3>Sunucu Kaynakları</h3><div class="server-host">${esc(m.hostname || 'VPS')} · ${esc(m.os || 'Linux')}</div></div>
+      <span class="server-live"><span class="dot ok"></span> Canlı · 4 sn</span>
+    </div>
+    <div class="card-body">
+      <div class="server-metrics-grid">
+        <article class="server-metric" data-system-card="cpu">
+          <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('cpu')}</span><span>CPU</span></div><b id="sysCpuValue">${formatPercent(cpu)}</b></div>
+          <div class="server-progress"><span id="sysCpuBar" style="width:${cpu}%"></span></div>
+          <div id="sysCpuGraph" class="server-graph">${sparkline(state.systemHistory.cpu)}</div>
+          <div class="server-metric-foot"><span id="sysCpuSub">${m.cpu_cores || 1} çekirdek</span><span id="sysLoadSub">Load ${Number(m.load_1 || 0).toFixed(2)}</span></div>
+        </article>
+        <article class="server-metric" data-system-card="memory">
+          <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('memory')}</span><span>RAM</span></div><b id="sysRamValue">${formatPercent(memory)}</b></div>
+          <div class="server-progress"><span id="sysRamBar" style="width:${memory}%"></span></div>
+          <div id="sysRamGraph" class="server-graph">${sparkline(state.systemHistory.memory)}</div>
+          <div class="server-metric-foot"><span id="sysRamUsed">${formatBytes(m.memory_used_bytes)} kullanılan</span><span id="sysRamTotal">/ ${formatBytes(m.memory_total_bytes)}</span></div>
+        </article>
+        <article class="server-metric" data-system-card="disk">
+          <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('disk')}</span><span>Disk</span></div><b id="sysDiskValue">${formatPercent(disk)}</b></div>
+          <div class="server-progress"><span id="sysDiskBar" style="width:${disk}%"></span></div>
+          <div id="sysDiskGraph" class="server-graph">${sparkline(state.systemHistory.disk)}</div>
+          <div class="server-metric-foot"><span id="sysDiskUsed">${formatBytes(m.disk_used_bytes)} kullanılan</span><span id="sysDiskTotal">/ ${formatBytes(m.disk_total_bytes)}</span></div>
+        </article>
+        <article class="server-metric uptime-metric" data-system-card="uptime">
+          <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('clock')}</span><span>Uptime</span></div><span class="status running">Online</span></div>
+          <div id="sysUptime" class="uptime-value">${formatUptime(m.uptime_seconds)}</div>
+          <div class="uptime-visual"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="server-metric-foot"><span id="sysHost">${esc(m.hostname || 'VPS')}</span><span>${state.system?.docker_ok ? 'Docker hazır' : 'Docker hata'}</span></div>
+        </article>
+      </div>
+    </div>
+  </section>`;
+}
+
+function updateSystemCards() {
+  const m = state.system?.metrics;
+  if (!m || !$('#sysCpuValue')) return;
+  const cpu = clamp(m.cpu_percent);
+  const memory = clamp(m.memory_percent);
+  const disk = clamp(m.disk_percent);
+  $('#sysCpuValue').textContent = formatPercent(cpu);
+  $('#sysCpuBar').style.width = `${cpu}%`;
+  $('#sysCpuGraph').innerHTML = sparkline(state.systemHistory.cpu);
+  $('#sysCpuSub').textContent = `${m.cpu_cores || 1} çekirdek`;
+  $('#sysLoadSub').textContent = `Load ${Number(m.load_1 || 0).toFixed(2)}`;
+  $('#sysRamValue').textContent = formatPercent(memory);
+  $('#sysRamBar').style.width = `${memory}%`;
+  $('#sysRamGraph').innerHTML = sparkline(state.systemHistory.memory);
+  $('#sysRamUsed').textContent = `${formatBytes(m.memory_used_bytes)} kullanılan`;
+  $('#sysRamTotal').textContent = `/ ${formatBytes(m.memory_total_bytes)}`;
+  $('#sysDiskValue').textContent = formatPercent(disk);
+  $('#sysDiskBar').style.width = `${disk}%`;
+  $('#sysDiskGraph').innerHTML = sparkline(state.systemHistory.disk);
+  $('#sysDiskUsed').textContent = `${formatBytes(m.disk_used_bytes)} kullanılan`;
+  $('#sysDiskTotal').textContent = `/ ${formatBytes(m.disk_total_bytes)}`;
+  $('#sysUptime').textContent = formatUptime(m.uptime_seconds);
+  $('#sysHost').textContent = m.hostname || 'VPS';
+}
+
+async function refreshDashboardMetrics() {
+  if (state.bot || state.view !== 'dashboard') return;
+  await refreshSystem();
+  updateSystemCards();
+}
+
 function renderDashboard() {
-  header('Dashboard', 'Bot altyapının kısa özeti.');
+  header('Dashboard', 'Bot altyapının ve VPS kaynaklarının kısa özeti.');
   const running = state.bots.filter(b => b.status === 'running').length;
   const problem = state.bots.filter(b => b.state?.oom_killed || (b.state?.exit_code > 0 && b.status !== 'running')).length;
   $('#content').innerHTML = `
-    <div class="stats-grid">
+    ${serverMetricCardsHTML()}
+    <div class="stats-grid bot-stats-grid">
       <div class="stat-card"><div class="stat-card-icon">${icon('bot')}</div><div class="stat-label">Toplam Bot</div><div class="stat-value">${state.bots.length}</div><div class="stat-sub">Python + Node.js instances</div></div>
       <div class="stat-card"><div class="stat-card-icon">${icon('play')}</div><div class="stat-label">Çalışan</div><div class="stat-value">${running}</div><div class="stat-sub">Aktif Docker container</div></div>
       <div class="stat-card"><div class="stat-card-icon">${icon('stop')}</div><div class="stat-label">Kapalı</div><div class="stat-value">${Math.max(0, state.bots.length - running)}</div><div class="stat-sub">Başlatılabilir instance</div></div>
@@ -233,7 +356,13 @@ function renderDashboard() {
       <div class="card-body">${botCards(state.bots)}</div>
     </section>`;
   wireBotCards();
-  $('#dashRefresh')?.addEventListener('click', async () => { await loadBots(); renderDashboard(); });
+  updateSystemCards();
+  clearInterval(state.systemTimer);
+  state.systemTimer = setInterval(refreshDashboardMetrics, 4000);
+  $('#dashRefresh')?.addEventListener('click', async () => {
+    await Promise.all([refreshSystem(), loadBots()]);
+    renderDashboard();
+  });
 }
 
 function renderBots() {
@@ -336,6 +465,7 @@ function wireDetail() {
 async function renderBotDetail() {
   if (!state.bot) return;
   clearInterval(state.statsTimer);
+  clearInterval(state.systemTimer);
   let inner = '';
   if (state.tab === 'overview') inner = overviewHTML();
   else if (state.tab === 'console') inner = consoleHTML();

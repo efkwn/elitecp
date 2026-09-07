@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.3.0
+
+- Dashboard'a VPS/host kaynak izleme kartları eklendi.
+- CPU kullanım yüzdesi ve 1/5/15 dakikalık load average bilgisi.
+- RAM kullanılan/toplam/boş alan ve kullanım yüzdesi.
+- Root disk kullanılan/toplam/boş alan ve kullanım yüzdesi.
+- VPS uptime, hostname ve işletim sistemi bilgisi.
+- CPU/RAM/Disk için son örnekleri gösteren hafif SVG mini grafikler (sparkline).
+- Dashboard metrikleri 4 saniyede bir otomatik yenilenir.
+- Sunucu metrikleri yalnızca Linux /proc ve standart Go sistem çağrılarıyla okunur; ek paket/agent gerekmez.
+- Sunucu kaynak kartları tablet ve mobilde 2/1 kolon responsive düzene geçer.
+
 ## v0.2.0
 
 - Yeni Startup Plan alanları: dependency file, main file, install command, startup command.

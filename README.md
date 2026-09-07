@@ -2,7 +2,7 @@
 
 Hafif, sade ve Docker tabanlı Discord / Telegram bot hosting kontrol paneli.
 
-> **v0.2.0** — Python 3.12 ve Node.js 22 botları hedefler. Bu sürüm startup pipeline, otomatik dependency kurulumu, daha detaylı console ve tamamen yenilenmiş responsive açık tema getirir.
+> **v0.3.0** — Python 3.12 ve Node.js 22 botları hedefler. Startup pipeline ve izole dependency yapısına ek olarak Dashboard artık VPS CPU, RAM, disk ve uptime verilerini canlı mini grafiklerle gösterir.
 
 ## Özellikler
 
@@ -108,9 +108,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/efkwn/elitecp/main/install.s
 
 Kurucu admin kullanıcı adı/şifresi ve domain sorar. CloudPanel algılanırsa domaini otomatik olarak `http://127.0.0.1:9080` adresine reverse proxy olarak eklemeyi ve Let's Encrypt kurmayı dener.
 
-## v0.1.x -> v0.2.0 güncelleme
+## Mevcut kurulumdan güncelleme
 
-Repository'nin `main` branch'ine v0.2.0 dosyalarını yükledikten sonra VPS'te:
+Repository'nin `main` branch'ine yeni sürüm dosyalarını yükledikten sonra VPS'te:
 
 ```bash
 sudo /opt/elitecp/src/update.sh
