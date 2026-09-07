@@ -665,3 +665,43 @@ input:focus,select:focus,textarea:focus{border-color:#aaa7ed;box-shadow:0 0 0 3p
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
 }
+
+/* =========================================================
+   eLite CP v0.5 · Locale controls + mobile login hardening
+   ========================================================= */
+.login-card-top{display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0}
+.language-switch{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid #e4e7ed;border-radius:10px;background:#f7f8fa;flex:0 0 auto}
+.language-switch button{min-width:34px;height:29px;padding:0 8px;border:0;border-radius:7px;background:transparent;color:#8a93a3;font-size:9px;font-weight:850;letter-spacing:.06em;transition:background .15s ease,color .15s ease,box-shadow .15s ease}
+.language-switch button:hover{color:#4b5567;background:#fff}
+.language-switch button.active{background:#fff;color:var(--accent);box-shadow:0 2px 8px rgba(31,37,55,.08)}
+.language-switch.compact{padding:2px;border-radius:9px}
+.language-switch.compact button{height:26px;min-width:31px;font-size:8px}
+.sidebar-language{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 3px;color:var(--muted-2);font-size:9px;font-weight:750;text-transform:uppercase;letter-spacing:.08em}
+.topbar-language{background:rgba(255,255,255,.75)}
+
+@media(max-width:860px){
+  /* v0.4 premium desktop rules were declared after the first mobile block.
+     Reassert the mobile login layout here so the hidden visual column can
+     never leave the login card squeezed into a zero-width grid track. */
+  .login-shell{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;min-width:0!important;min-height:100vh!important;min-height:100svh!important;background:#f8f9fc!important}
+  .login-visual{display:none!important}
+  .login-card-wrap{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;min-height:100vh!important;min-height:100svh!important;padding:max(22px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))!important}
+  .login-card{width:100%!important;max-width:420px!important;min-width:0!important;padding:28px 25px!important;margin:0 auto!important}
+  #loginView:not(.hidden){position:relative;z-index:40}
+  body:has(#loginView:not(.hidden)){padding-bottom:0}
+}
+
+@media(max-width:620px){
+  .topbar-language{display:none}
+  .login-card{max-width:390px!important;padding:25px 22px!important;border-radius:20px!important}
+  .login-copy{margin:25px 0 21px}
+  .login-copy h2{font-size:24px}
+}
+
+@media(max-width:390px){
+  .login-card-wrap{padding-left:13px!important;padding-right:13px!important}
+  .login-card{padding:22px 19px!important}
+  .brand-large{font-size:23px}
+  .brand-large .brand-mark{width:41px;height:41px}
+  .language-switch button{min-width:31px;padding:0 6px}
+}

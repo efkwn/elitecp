@@ -1,69 +1,79 @@
+<div align="center">
+
 # eLite CP
 
-Hafif, sade ve Docker tabanlı Discord / Telegram bot hosting kontrol paneli.
+**A lightweight Docker control panel for Discord and Telegram bots.**
 
-> **v0.4.0** — Python 3.12 ve Node.js 22 botları hedefler. Startup pipeline, izole dependency yapısı ve VPS metriklerine ek olarak arayüz artık “Atelier UI” tasarım katmanına sahiptir; buna rağmen harici frontend framework/font/chart bağımlılığı yoktur.
+Go · SQLite · Docker · Vanilla HTML/CSS/JS
 
-## Özellikler
+[Installation](#installation) · [Updating](#updating) · [CloudPanel](#cloudpanel--cloudflare) · [Security](#security)
 
-- Go backend + gömülü vanilla web arayüzü (tek servis)
-- SQLite veritabanı
-- Python 3.12 / Node.js 22 runtime
-- Her bot için ayrı Docker container
-- Python botlarında **bot başına ayrı ve kalıcı venv** (`/app/.elitecp/venv`)
-- Node.js botlarında bot başına ayrı `node_modules`
-- Startup planı: dependency dosyası + install command + main file + startup command
-- `requirements.txt` / `package.json` değiştiğinde dependency kurulumunu otomatik tekrar çalıştırma
-- Manuel **Dependencies'i Yeniden Kur** aksiyonu
-- Start / Stop / Restart / Rebuild
-- RAM ve CPU limitleri
-- OOM / exit code bilgisi
-- Canlı Docker log/console akışı (SSE)
-- Console komutlarında Python venv'i otomatik aktive etme
-- ENV / token yönetimi
-- Dosya yöneticisi ve metin editörü
-- ZIP yükleme ve güvenli açma
-- Atelier UI açık tema, local SVG icon set, mobil bottom dock ve tamamen responsive arayüz
-- Debian 11 için interaktif tek-komut kurulum
-- Mevcut CloudPanel'e dokunmadan `127.0.0.1:9080` üzerinde çalışma
-- CloudPanel CLI ile reverse proxy ve Let's Encrypt kurulumu
-- Sıfır harici UI dependency: vanilla HTML/CSS/JS, local SVG, hafif inline sparklines
+</div>
 
-## Startup pipeline
+---
 
-Python örneği:
+> **v0.5.0** — English is now the default interface language, Turkish is available from the built-in language switcher, and the mobile login layout has been hardened for small screens. eLite CP still ships with zero external frontend frameworks, font CDNs or chart libraries.
+
+## Why eLite CP?
+
+eLite CP is a small bot-hosting control panel designed for people who want a Pterodactyl/PufferPanel-style workflow without running a large stack. The current focus is **Discord and Telegram bots** running on **Python 3.12** or **Node.js 22**.
+
+Each bot runs in its own Docker container and has its own persistent application directory. Python dependencies are installed into a **per-bot virtual environment**, while Node.js dependencies stay inside that bot's own `node_modules` directory.
+
+## Features
+
+- Go backend with an embedded web UI — one service, one binary
+- SQLite database — no MySQL/PostgreSQL server required
+- Python 3.12 and Node.js 22 runtimes
+- One isolated Docker container per bot
+- Persistent per-bot Python virtual environment at `/app/.elitecp/venv`
+- Persistent per-bot Node.js `node_modules`
+- Startup pipeline with:
+  - dependency file
+  - install command
+  - main file
+  - startup command
+- Automatic dependency reinstall when `requirements.txt` / `package.json` changes
+- Manual **Reinstall Dependencies** action
+- Start / Stop / Restart / Rebuild controls
+- CPU and RAM limits
+- OOM and exit-code visibility
+- Live Docker logs through Server-Sent Events
+- Interactive container command execution
+- Environment variable / token management
+- File manager and text editor
+- Drag-and-drop upload and safe ZIP extraction
+- VPS CPU / RAM / disk / uptime cards with lightweight inline sparklines
+- Responsive light UI with local SVG icons
+- English default UI + Turkish secondary language
+- Debian 11 interactive installer
+- CloudPanel reverse-proxy auto configuration when `clpctl` is available
+- Automatic Let's Encrypt attempt on CloudPanel
+- No React, Vue, Next.js, Bootstrap, Tailwind runtime, Chart.js, Google Fonts or icon CDN
+
+## Architecture
 
 ```text
-1. Python container hazırlanır
-2. /app/.elitecp/venv oluşturulur / aktive edilir
-3. requirements.txt hash'i kontrol edilir
-4. Değişmişse: python -m pip install -r requirements.txt
-5. Startup: python bot.py
+Cloudflare / DNS
+       |
+CloudPanel NGINX :80 / :443
+       |
+127.0.0.1:9080
+       |
+    eLite CP
+  Go + SQLite
+       |
+ Docker Engine
+   /       \
+Python    Node.js
+ Bot        Bot
 ```
 
-Panelde varsayılan alanlar:
+eLite CP binds to **`127.0.0.1:9080`** by default. It does not take over ports `80` or `443`, so it can live next to an existing CloudPanel installation.
 
-```text
-Dependency file: requirements.txt
-Main file:       bot.py
-Install command: python -m pip install --disable-pip-version-check -r {{dependency_file}}
-Startup command: python {{main_file}}
-```
+## Runtime isolation
 
-Node.js için varsayılanlar:
-
-```text
-Dependency file: package.json
-Main file:       index.js
-Install command: package-lock.json varsa npm ci --omit=dev, yoksa npm install --omit=dev
-Startup command: node {{main_file}}
-```
-
-Dependency dosyası değişmediyse gereksiz yere tekrar paket indirilmez. Panelde **Dependencies'i Yeniden Kur** ile cache damgası silinip kurulum zorlanabilir.
-
-## İzolasyon
-
-Bot kütüphaneleri host sisteme kurulmaz.
+Bot libraries are not installed into the host Python or mixed between bots.
 
 ```text
 VPS host
@@ -76,98 +86,282 @@ VPS host
         └── /app/node_modules
 ```
 
-Her botun `/app` dizini kendi `/var/lib/elitecp/bots/<id>/app/` dizinine bağlıdır. Python venv ve Node modülleri bu bot dizininde kalır; host `pip`, host Python paketleri veya başka botların paketleriyle karışmaz.
-
-> Docker container bir sanal makine değildir; container'lar host kernel'i paylaşır. Paket/dosya/process izolasyonu vardır. Çok kullanıcılı ticari hosting için sonraki aşamada ayrı node-agent ve daha sert sandboxing planlanmalıdır.
-
-## Mimari
+Each bot's `/app` directory is backed by:
 
 ```text
-Cloudflare / Domain
-        |
-CloudPanel NGINX :80/:443
-        |
-  127.0.0.1:9080
-        |
-     eLite CP
-   Go + SQLite
-        |
-   Docker Engine
-    /        \
-Python Bot  Node Bot
+/var/lib/elitecp/bots/<bot-id>/app/
 ```
 
-Panel **80/443 portlarını açmaz**. CloudPanel ana reverse proxy olarak kalır.
+Docker containers are not virtual machines and still share the host kernel, but application files, processes and dependencies are separated per container.
 
-## Debian 11 kurulum
+## Startup pipeline
 
-Root olarak:
+For a typical Python Telegram bot:
+
+```text
+Dependency file: requirements.txt
+Main file:       bot.py
+Install command: python -m pip install --disable-pip-version-check -r {{dependency_file}}
+Startup command: python {{main_file}}
+```
+
+A start then follows this sequence:
+
+```text
+1. Prepare the Python container
+2. Create/activate /app/.elitecp/venv
+3. Check the dependency-file fingerprint
+4. Install packages only when needed
+5. Start the application
+```
+
+For code containing:
+
+```python
+import telebot
+```
+
+put this in `requirements.txt`:
+
+```text
+pyTelegramBotAPI
+```
+
+For Node.js, the defaults are:
+
+```text
+Dependency file: package.json
+Main file:       index.js
+Install command: npm ci --omit=dev (when package-lock.json exists), otherwise npm install --omit=dev
+Startup command: node {{main_file}}
+```
+
+## Requirements
+
+The one-command installer currently targets:
+
+- Debian 11 (Bullseye)
+- root access
+- x86_64/amd64 or arm64
+- internet access for APT, GitHub, Go and Docker image pulls
+- a VPS/VM capable of running Docker
+
+For domain setup you should point an `A`/`AAAA` record to the VPS before installation.
+
+## Installation
+
+### One-command installer
+
+Connect to your Debian 11 VPS over SSH and run:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/efkwn/elitecp/main/install.sh)
+curl -fsSL https://raw.githubusercontent.com/efkwn/elitecp/main/install.sh -o /tmp/elitecp-install.sh && sudo bash /tmp/elitecp-install.sh
 ```
 
-Kurucu admin kullanıcı adı/şifresi ve domain sorar. CloudPanel algılanırsa domaini otomatik olarak `http://127.0.0.1:9080` adresine reverse proxy olarak eklemeyi ve Let's Encrypt kurmayı dener.
+The installer asks for:
 
-## Mevcut kurulumdan güncelleme
+1. admin username
+2. admin password
+3. whether you want to configure a domain
+4. the domain name, for example `cp.example.com`
 
-Repository'nin `main` branch'ine yeni sürüm dosyalarını yükledikten sonra VPS'te:
+It then:
+
+- installs required Debian packages
+- enables Docker
+- installs Go when a suitable version is not already available
+- creates the `elitecp` system user
+- clones this repository to `/opt/elitecp/src`
+- builds `/usr/local/bin/elitecp`
+- creates the SQLite database and admin account
+- installs/enables the systemd service
+- binds eLite CP to `127.0.0.1:9080`
+- detects CloudPanel and attempts to create a reverse proxy
+- attempts to issue a Let's Encrypt certificate through CloudPanel
+
+After installation:
+
+```bash
+systemctl status elitecp --no-pager
+elitecp version
+elitecp doctor
+```
+
+Live logs:
+
+```bash
+journalctl -u elitecp -f
+```
+
+## CloudPanel + Cloudflare
+
+If CloudPanel is installed and `clpctl` is available, the installer attempts to create a **Reverse Proxy Site** pointing your domain to:
+
+```text
+http://127.0.0.1:9080
+```
+
+Recommended first-time Cloudflare flow:
+
+1. Create an `A` record such as `cp.example.com` pointing to the VPS IP.
+2. Temporarily set the record to **DNS only** during the initial certificate issuance if Let's Encrypt has trouble.
+3. Run the eLite CP installer and enter the domain when asked.
+4. Confirm `https://cp.example.com` works.
+5. You may then enable Cloudflare proxying again.
+6. Prefer **Full (strict)** in Cloudflare SSL/TLS once the origin certificate is valid.
+
+If the domain already exists in CloudPanel, automatic reverse-proxy creation may fail harmlessly. In that case create or edit the reverse proxy manually and use `http://127.0.0.1:9080` as the target.
+
+## Manual reverse proxy without CloudPanel
+
+You can use any reverse proxy. The upstream is:
+
+```text
+http://127.0.0.1:9080
+```
+
+Keep eLite CP bound to localhost and terminate public HTTP/HTTPS at your existing NGINX/Caddy/Apache proxy.
+
+## Creating your first bot
+
+1. Sign in to eLite CP.
+2. Click **New Bot**.
+3. Choose Python 3.12 or Node.js 22.
+4. Set RAM and CPU limits.
+5. Create the bot.
+6. Open **Files** and upload your source files.
+7. Put secrets such as bot tokens under **Variables**.
+8. Check **Startup & Settings**.
+9. Press **Start**.
+10. Follow every startup step from **Console**.
+
+## Updating
+
+The updater creates a SQLite backup before fetching and building the latest `main` branch.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/efkwn/elitecp/main/update.sh -o /tmp/elitecp-update.sh && sudo bash /tmp/elitecp-update.sh
+```
+
+Or, on an existing standard installation:
 
 ```bash
 sudo /opt/elitecp/src/update.sh
 ```
 
-SQLite migration otomatik çalışır; mevcut bot ve dosyalar silinmez. Eski sürümde oluşturulmuş Docker container'lar ilk **Start/Restart** sırasında yeni runtime schema ile otomatik recreate edilir. Dosyalar bind mount altında kaldığı için korunur.
-
-Güncelleme sonrası kontrol:
+Then verify:
 
 ```bash
+elitecp version
 systemctl status elitecp --no-pager
 journalctl -u elitecp -n 80 --no-pager
 ```
 
-## Cloudflare
+SQLite migrations run automatically. Existing bot data and bind-mounted bot files are preserved.
 
-A/AAAA kaydının VPS'e yönelmiş olması gerekir. Let's Encrypt otomasyonu başarısız olursa CloudPanel'deki ilgili sitenin **SSL/TLS** ekranından sertifikayı tekrar kurabilir veya Cloudflare Origin Certificate kullanabilirsin.
-
-## Servis komutları
-
-```bash
-systemctl status elitecp
-systemctl restart elitecp
-journalctl -u elitecp -f
-/usr/local/bin/elitecp doctor
-```
-
-## Veriler
+## Data locations
 
 ```text
 /var/lib/elitecp/elitecp.db
 /var/lib/elitecp/bots/<bot-id>/app/
+/var/lib/elitecp/backups/
 /etc/elitecp/elitecp.env
+/opt/elitecp/src/
 ```
 
-Bot dosyalarını yedeklemek için `/var/lib/elitecp` dizinini yedeklemek yeterlidir.
+To back up the full installation data, back up `/var/lib/elitecp` and `/etc/elitecp`.
 
-## Güvenlik notları
+## Service commands
 
-Bu sürüm tek-admin / küçük hosting MVP'sidir. eLite CP sistem kullanıcısı Docker daemon'a erişir; Docker socket erişimi Linux'ta yüksek yetkilidir. Panel bot container'larında capability'leri düşürür, `no-new-privileges`, PID, RAM ve CPU limitleri uygular. Çok kullanıcılı ticari kullanım öncesi ayrı node-agent, RBAC, audit log, 2FA, secret encryption-at-rest ve daha sert sandboxing eklenmelidir.
+```bash
+systemctl status elitecp
+systemctl restart elitecp
+systemctl stop elitecp
+journalctl -u elitecp -f
+elitecp version
+elitecp doctor
+```
 
-Bot tokenları ve bot kodunun güvenliği panel yöneticisinin sorumluluğundadır.
+## Troubleshooting
 
-## Geliştirme
+### A Python module is missing
 
-Debian/Ubuntu üzerinde:
+Make sure the package is listed in the bot's `requirements.txt`, then use **Reinstall Dependencies** or restart the bot.
+
+Example:
+
+```text
+ModuleNotFoundError: No module named 'telebot'
+```
+
+requires:
+
+```text
+pyTelegramBotAPI
+```
+
+### The bot says `signal: killed`
+
+Check the bot state and container logs. If Docker reports OOMKilled, raise the bot RAM limit or reduce memory usage.
+
+### The panel works locally but the domain does not
+
+Check:
+
+```bash
+systemctl status elitecp --no-pager
+curl -I http://127.0.0.1:9080
+```
+
+Then verify your reverse proxy, DNS and TLS configuration.
+
+### CloudPanel could not create the reverse proxy automatically
+
+The domain may already exist. Create a CloudPanel **Reverse Proxy Site** manually with:
+
+```text
+Domain: your panel domain
+Target: http://127.0.0.1:9080
+```
+
+## Security
+
+This release is a **single-admin / small-hosting MVP**.
+
+The `elitecp` system user needs Docker daemon access. On Linux, Docker daemon access is highly privileged. Before exposing eLite CP as a public multi-tenant commercial service, consider adding a separate node agent, RBAC, 2FA, audit logs, encrypted secrets, stricter sandboxing and stronger tenant isolation.
+
+Bot source code and bot tokens remain the responsibility of the panel administrator.
+
+See [SECURITY.md](SECURITY.md) for additional guidance.
+
+## Development
+
+On Debian/Ubuntu:
 
 ```bash
 sudo apt install gcc libsqlite3-dev
+CGO_ENABLED=1 go test ./...
 CGO_ENABLED=1 go build -o elitecp .
-ELITECP_DATA_DIR=./data ELITECP_DB=./data/dev.db ./elitecp setup-admin --username admin --password 'change-me-now'
-ELITECP_DATA_DIR=./data ELITECP_DB=./data/dev.db ELITECP_LISTEN=127.0.0.1:9080 ./elitecp
 ```
 
-Go tarafında üçüncü parti modül kullanılmaz. SQLite sistem `libsqlite3` kütüphanesi üzerinden bağlanır; frontend vanilla HTML/CSS/JS'dir.
+Create a development admin:
 
-## Lisans
+```bash
+mkdir -p ./data
+ELITECP_DATA_DIR=./data ELITECP_DB=./data/dev.db ./elitecp setup-admin --username admin --password 'change-me-now'
+```
 
-MIT — `LICENSE` dosyasına bakın.
+Run locally:
+
+```bash
+ELITECP_DATA_DIR=./data \
+ELITECP_DB=./data/dev.db \
+ELITECP_LISTEN=127.0.0.1:9080 \
+./elitecp
+```
+
+The Go backend intentionally uses no third-party Go modules. SQLite is accessed through the system `libsqlite3` library, while the UI is plain HTML/CSS/JavaScript with local SVG icons.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

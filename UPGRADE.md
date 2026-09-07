@@ -1,30 +1,41 @@
-# eLite CP v0.4.0 Upgrade
+# Upgrading eLite CP
 
-Bu sürüm ağırlıklı olarak UI/UX güncellemesidir. SQLite şeması, bot dosyaları, ENV değerleri ve container verileri korunur. v0.3.0 üzerine doğrudan kurulabilir.
+## Upgrade to v0.5.0
 
-Repository `main` branch'ine v0.4.0 dosyalarını yükledikten sonra VPS'te:
+v0.5.0 does not require a manual database migration. Existing users, bots, files, environment variables and startup settings are preserved.
+
+Run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/efkwn/elitecp/main/update.sh -o /tmp/elitecp-update.sh && sudo bash /tmp/elitecp-update.sh
 ```
 
-Updater mevcut davranışıyla SQLite yedeği alır, kaynakları çeker, test/build yapar ve `elitecp` servisini yeniden başlatır.
+The updater:
 
-Tarayıcı eski CSS/JS tutuyorsa güncellemeden sonra bir kez hard refresh (`Ctrl+Shift+R`) yap.
+1. creates a SQLite backup under `/var/lib/elitecp/backups/`
+2. fetches the latest `main` branch
+3. runs Go tests
+4. builds the new binary
+5. restarts the systemd service
 
-Kontrol:
+Verify:
 
 ```bash
 elitecp version
 systemctl status elitecp --no-pager
+journalctl -u elitecp -n 80 --no-pager
 ```
 
-Beklenen sürüm:
+Expected version:
 
 ```text
-eLite CP 0.4.0
+eLite CP 0.5.0
 ```
 
-## Hafiflik
+## Browser cache
 
-v0.4.0 ile React/Vue, webfont, icon paketi CDN'i veya grafik kütüphanesi eklenmedi. Web katmanı hâlâ vanilla HTML/CSS/JS ve local SVG sprite'tan oluşur.
+If the old interface is still visible after the update, perform a hard refresh or clear the site cache once. No browser data needs to be deleted for normal upgrades.
+
+## Language preference
+
+English is the default for browsers that have never selected a language. If a user changes the UI to Turkish, eLite CP stores that preference locally in the browser.

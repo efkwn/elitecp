@@ -1,45 +1,31 @@
 # Changelog
 
-## v0.4.0
+## v0.5.0
 
-- Arayüz baştan sona **Atelier UI** görsel katmanına taşındı; backend veya runtime ağırlığı artırılmadı.
-- Harici font, CSS framework, chart kütüphanesi veya icon CDN'i eklenmedi.
-- Dashboard için yeni kontrol merkezi hero alanı, sistem sağlık özeti ve daha kompakt bot istatistik şeridi.
-- CPU/RAM/Disk/Uptime kartları daha okunaklı tipografi, mikro grafikler ve canlı durum göstergeleriyle yenilendi.
-- Bot kartları, durum rozetleri ve kaynak satırları yeniden tasarlandı.
-- Bot detay ekranı yeni instance hero, segment tab düzeni ve premium kaynak/pipeline kartlarına geçti.
-- Console görünümü daha profesyonel terminal chrome, daha sıkı toolbar ve mobil optimizasyon aldı.
-- Mobilde Dashboard / Botlar / Yeni Bot için hafif sabit bottom dock eklendi.
-- Login ekranı, dialoglar, formlar, file manager, focus state ve reduced-motion erişilebilirliği görsel olarak iyileştirildi.
-- Tüm yeni görseller CSS + mevcut local SVG sprite ile çalışır; yeni runtime dependency yoktur.
+### Added
 
-## v0.3.0
+- English is now the default eLite CP interface language.
+- Turkish is available as a built-in secondary language.
+- Lightweight EN/TR switchers are available on the login screen, desktop top bar and sidebar.
+- The selected language is persisted in `localStorage`.
+- Dynamic dashboard, bot detail, file manager, environment, settings, console and toast text is localized.
 
-- Dashboard'a VPS/host kaynak izleme kartları eklendi.
-- CPU kullanım yüzdesi ve 1/5/15 dakikalık load average bilgisi.
-- RAM kullanılan/toplam/boş alan ve kullanım yüzdesi.
-- Root disk kullanılan/toplam/boş alan ve kullanım yüzdesi.
-- VPS uptime, hostname ve işletim sistemi bilgisi.
-- CPU/RAM/Disk için son örnekleri gösteren hafif SVG mini grafikler (sparkline).
-- Dashboard metrikleri 4 saniyede bir otomatik yenilenir.
-- Sunucu metrikleri yalnızca Linux /proc ve standart Go sistem çağrılarıyla okunur; ek paket/agent gerekmez.
-- Sunucu kaynak kartları tablet ve mobilde 2/1 kolon responsive düzene geçer.
+### Fixed
 
-## v0.2.0
+- Fixed the mobile login screen becoming extremely narrow on small viewports.
+- The issue was caused by a later premium desktop grid rule overriding the earlier mobile login grid declaration.
+- Added a final responsive login layout guard using a single minmax grid track and a full-width, max-width-capped login card.
+- Improved safe-area padding for mobile browsers.
 
-- Yeni Startup Plan alanları: dependency file, main file, install command, startup command.
-- Python botları için bot başına kalıcı `.elitecp/venv`.
-- Console içindeki manuel `pip` / `python` komutları aynı venv ile çalışır.
-- Dependency dosyası hash kontrolü; değişmediyse install adımı atlanır.
-- Node.js'te `package-lock.json` / `npm-shrinkwrap.json` değişiklikleri de dependency hash'ine dahil edilir.
-- `reinstall` aksiyonu ile dependency kurulumunu zorla yeniden çalıştırma.
-- Eski container'ları ilk Start/Restart sırasında otomatik v0.2 runtime schema'ya taşıma.
-- OOMKilled, exit code ve container state bilgisi.
-- Console'da startup pipeline adımlarının detaylı loglanması.
-- Tamamen yenilenmiş açık tema ve responsive mobil arayüz.
-- Local SVG icon set; harici icon CDN'i yok.
-- Startup, dosya yöneticisi, ENV ve console UX iyileştirmeleri.
+### Documentation
 
-## v0.1.0
+- Rewrote README, SECURITY and UPGRADE documentation in English.
+- Reworked installation instructions for public GitHub users.
+- Removed the project-owner-specific domain default from the installer.
+- Installer and updater terminal output are now English.
 
-- İlk MVP: Go + SQLite + Docker, Python/Node runtime, dosya yöneticisi, ENV, console ve CloudPanel kurulumu.
+### Lightweight by design
+
+- No frontend framework was added.
+- No external font, icon or chart dependency was added.
+- Localization is a small in-browser dictionary and DOM helper.

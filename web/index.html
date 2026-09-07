@@ -1,42 +1,48 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f6f8fc">
+  <meta name="theme-color" content="#f7f8fb">
   <meta name="color-scheme" content="light">
   <title>eLite CP</title>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css?v=0.5.0">
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
 
   <section id="loginView" class="login-shell hidden">
     <div class="login-visual">
-      <div class="login-badge"><svg class="icon"><use href="/icons.svg#shield"></use></svg> Docker ile izole runtime</div>
-      <h1>Botlarını hızlı, sade ve tek panelden yönet.</h1>
-      <p>Discord ve Telegram botları için Python / Node.js odaklı hafif kontrol paneli.</p>
+      <div class="login-badge"><svg class="icon"><use href="/icons.svg#shield"></use></svg><span data-i18n="login.badge">Isolated Docker runtime</span></div>
+      <h1 data-i18n="login.heroTitle">Run your bots fast, clean and from one control plane.</h1>
+      <p data-i18n="login.heroText">A lightweight control panel focused on Python and Node.js bots for Discord and Telegram.</p>
       <div class="login-features">
-        <span><svg class="icon"><use href="/icons.svg#terminal"></use></svg> Canlı console</span>
-        <span><svg class="icon"><use href="/icons.svg#package"></use></svg> Otomatik dependency kurulumu</span>
-        <span><svg class="icon"><use href="/icons.svg#folder"></use></svg> Dosya yöneticisi</span>
+        <span><svg class="icon"><use href="/icons.svg#terminal"></use></svg><span data-i18n="login.featureConsole">Live console</span></span>
+        <span><svg class="icon"><use href="/icons.svg#package"></use></svg><span data-i18n="login.featureDeps">Automatic dependency install</span></span>
+        <span><svg class="icon"><use href="/icons.svg#folder"></use></svg><span data-i18n="login.featureFiles">File manager</span></span>
       </div>
     </div>
 
     <div class="login-card-wrap">
       <div class="login-card">
-        <div class="brand brand-large">
-          <span class="brand-mark"><svg class="icon"><use href="/icons.svg#logo"></use></svg></span>
-          <span>eLite CP</span>
+        <div class="login-card-top">
+          <div class="brand brand-large">
+            <span class="brand-mark"><svg class="icon"><use href="/icons.svg#logo"></use></svg></span>
+            <span>eLite CP</span>
+          </div>
+          <div class="language-switch" data-language-switch data-i18n-aria="nav.language" aria-label="Language">
+            <button type="button" data-lang="en" class="active">EN</button>
+            <button type="button" data-lang="tr">TR</button>
+          </div>
         </div>
         <div class="login-copy">
-          <h2>Tekrar hoş geldin</h2>
-          <p>Kontrol paneline devam etmek için giriş yap.</p>
+          <h2 data-i18n="login.title">Welcome back</h2>
+          <p data-i18n="login.subtitle">Sign in to continue to your control panel.</p>
         </div>
         <form id="loginForm" class="stack gap-lg">
-          <label>Kullanıcı adı<input id="loginUser" autocomplete="username" required placeholder="admin"></label>
-          <label>Şifre<input id="loginPass" type="password" autocomplete="current-password" required placeholder="••••••••••"></label>
-          <button class="btn primary wide" type="submit"><svg class="icon"><use href="/icons.svg#login"></use></svg> Giriş Yap</button>
+          <label><span data-i18n="login.username">Username</span><input id="loginUser" autocomplete="username" required placeholder="admin"></label>
+          <label><span data-i18n="login.password">Password</span><input id="loginPass" type="password" autocomplete="current-password" required placeholder="••••••••••"></label>
+          <button class="btn primary wide" type="submit"><svg class="icon"><use href="/icons.svg#login"></use></svg><span data-i18n="login.submit">Sign in</span></button>
         </form>
         <div class="login-foot">eLite CP · Go · SQLite · Docker</div>
       </div>
@@ -44,96 +50,107 @@
   </section>
 
   <div id="appView" class="app-shell hidden">
-    <button id="sidebarBackdrop" class="sidebar-backdrop" aria-label="Menüyü kapat"></button>
+    <button id="sidebarBackdrop" class="sidebar-backdrop" data-i18n-aria="nav.closeMenu" aria-label="Close menu"></button>
     <aside class="sidebar">
       <div class="brand sidebar-brand">
         <span class="brand-mark"><svg class="icon"><use href="/icons.svg#logo"></use></svg></span>
         <div><span>eLite CP</span><small>Bot Control Panel</small></div>
-        <span class="version-pill">0.4</span>
+        <span class="version-pill">0.5</span>
       </div>
 
       <nav class="nav">
-        <button class="nav-item active" data-view="dashboard"><svg class="icon"><use href="/icons.svg#dashboard"></use></svg><span>Dashboard</span></button>
-        <button class="nav-item" data-view="bots"><svg class="icon"><use href="/icons.svg#bot"></use></svg><span>Botlar</span><span id="botCountBadge" class="nav-count">0</span></button>
+        <button class="nav-item active" data-view="dashboard"><svg class="icon"><use href="/icons.svg#dashboard"></use></svg><span data-i18n="nav.dashboard">Dashboard</span></button>
+        <button class="nav-item" data-view="bots"><svg class="icon"><use href="/icons.svg#bot"></use></svg><span data-i18n="nav.bots">Bots</span><span id="botCountBadge" class="nav-count">0</span></button>
       </nav>
 
       <div class="sidebar-spacer"></div>
+      <div class="sidebar-language">
+        <span data-i18n="nav.language">Language</span>
+        <div class="language-switch compact" data-language-switch data-i18n-aria="nav.language" aria-label="Language">
+          <button type="button" data-lang="en" class="active">EN</button>
+          <button type="button" data-lang="tr">TR</button>
+        </div>
+      </div>
       <div class="sidebar-status">
         <span id="dockerDot" class="dot"></span>
-        <div><b id="dockerText">Docker kontrol ediliyor</b><small>Container runtime</small></div>
+        <div><b id="dockerText" data-i18n="system.checkingDocker">Checking Docker</b><small>Container runtime</small></div>
       </div>
-      <button id="logoutBtn" class="nav-item danger"><svg class="icon"><use href="/icons.svg#logout"></use></svg><span>Çıkış Yap</span></button>
+      <button id="logoutBtn" class="nav-item danger"><svg class="icon"><use href="/icons.svg#logout"></use></svg><span data-i18n="nav.logout">Sign out</span></button>
     </aside>
 
     <main class="main">
       <header class="topbar">
         <div class="topbar-left">
-          <button id="mobileMenu" class="icon-btn mobile-only" aria-label="Menüyü aç"><svg class="icon"><use href="/icons.svg#menu"></use></svg></button>
-          <div class="topbar-copy"><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Bot altyapının kısa özeti.</p></div>
+          <button id="mobileMenu" class="icon-btn mobile-only" data-i18n-aria="nav.openMenu" aria-label="Open menu"><svg class="icon"><use href="/icons.svg#menu"></use></svg></button>
+          <div class="topbar-copy"><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">A quick overview of your bot infrastructure.</p></div>
         </div>
         <div class="top-actions">
+          <div class="language-switch topbar-language" data-language-switch data-i18n-aria="nav.language" aria-label="Language">
+            <button type="button" data-lang="en" class="active">EN</button>
+            <button type="button" data-lang="tr">TR</button>
+          </div>
           <span id="userChip" class="user-chip"></span>
-          <button id="newBotBtn" class="btn primary"><svg class="icon"><use href="/icons.svg#plus"></use></svg><span class="btn-label">Yeni Bot</span></button>
+          <button id="newBotBtn" class="btn primary"><svg class="icon"><use href="/icons.svg#plus"></use></svg><span class="btn-label" data-i18n="actions.newBot">New Bot</span></button>
         </div>
       </header>
       <div id="content" class="content"></div>
     </main>
 
-    <nav class="mobile-dock" aria-label="Mobil navigasyon">
-      <button class="mobile-dock-item active" data-view="dashboard"><svg class="icon"><use href="/icons.svg#dashboard"></use></svg><span>Panel</span></button>
-      <button class="mobile-dock-item" data-view="bots"><svg class="icon"><use href="/icons.svg#bot"></use></svg><span>Botlar</span></button>
-      <button class="mobile-dock-new" id="mobileNewBot" aria-label="Yeni Bot"><svg class="icon"><use href="/icons.svg#plus"></use></svg></button>
+    <nav class="mobile-dock" data-i18n-aria="nav.mobileNavigation" aria-label="Mobile navigation">
+      <button class="mobile-dock-item active" data-view="dashboard"><svg class="icon"><use href="/icons.svg#dashboard"></use></svg><span data-i18n="nav.panel">Panel</span></button>
+      <button class="mobile-dock-item" data-view="bots"><svg class="icon"><use href="/icons.svg#bot"></use></svg><span data-i18n="nav.bots">Bots</span></button>
+      <button class="mobile-dock-new" id="mobileNewBot" data-i18n-aria="actions.newBot" aria-label="New Bot"><svg class="icon"><use href="/icons.svg#plus"></use></svg></button>
     </nav>
   </div>
 
   <dialog id="botDialog" class="dialog">
     <form id="botForm" method="dialog" class="dialog-card bot-dialog-card">
       <div class="dialog-head">
-        <div><span class="eyebrow">YENİ INSTANCE</span><h2>Bot Oluştur</h2><p>Dosyaları yükle; eLite CP dependency adımını çalıştırıp ardından botunu başlatsın.</p></div>
-        <button type="button" class="icon-btn" data-close-dialog aria-label="Kapat"><svg class="icon"><use href="/icons.svg#close"></use></svg></button>
+        <div><span class="eyebrow" data-i18n="newBot.eyebrow">NEW INSTANCE</span><h2 data-i18n="newBot.title">Create Bot</h2><p data-i18n="newBot.subtitle">Upload your files; eLite CP installs dependencies and then starts your bot.</p></div>
+        <button type="button" class="icon-btn" data-close-dialog data-i18n-aria="actions.close" aria-label="Close"><svg class="icon"><use href="/icons.svg#close"></use></svg></button>
       </div>
 
       <div class="form-section">
-        <div class="form-section-title"><svg class="icon"><use href="/icons.svg#bot"></use></svg> Genel</div>
+        <div class="form-section-title"><svg class="icon"><use href="/icons.svg#bot"></use></svg><span data-i18n="newBot.general">General</span></div>
         <div class="grid two">
-          <label>Bot adı<input name="name" required maxlength="64" placeholder="Telegram Bot"></label>
-          <label>Runtime<select name="runtime" id="runtimeSelect"><option value="python">Python 3.12</option><option value="node">Node.js 22</option></select></label>
+          <label><span data-i18n="newBot.botName">Bot name</span><input name="name" required maxlength="64" placeholder="Telegram Bot"></label>
+          <label><span>Runtime</span><select name="runtime" id="runtimeSelect"><option value="python">Python 3.12</option><option value="node">Node.js 22</option></select></label>
         </div>
       </div>
 
       <div class="form-section startup-section">
-        <div class="form-section-title"><svg class="icon"><use href="/icons.svg#workflow"></use></svg> Startup Planı</div>
+        <div class="form-section-title"><svg class="icon"><use href="/icons.svg#workflow"></use></svg><span data-i18n="newBot.startupPlan">Startup Plan</span></div>
         <div class="pipeline-preview">
-          <span><b>1</b> Runtime hazırlanır</span><i></i><span><b>2</b> Kütüphaneler kurulur</span><i></i><span><b>3</b> Bot başlatılır</span>
+          <span><b>1</b><span data-i18n="pipeline.prepareRuntime">Prepare runtime</span></span><i></i><span><b>2</b><span data-i18n="pipeline.installDependencies">Install dependencies</span></span><i></i><span><b>3</b><span data-i18n="pipeline.startBot">Start bot</span></span>
         </div>
         <div class="grid two">
-          <label>Dependency dosyası<input name="dependency_file" id="dependencyFileInput" placeholder="requirements.txt"><span class="field-help">Python: requirements.txt · Node: package.json</span></label>
-          <label>Ana dosya<input name="main_file" id="mainFileInput" placeholder="bot.py"><span class="field-help">Botu çalıştıran dosya; örn. bot.py / index.js.</span></label>
+          <label><span data-i18n="fields.dependencyFile">Dependency file</span><input name="dependency_file" id="dependencyFileInput" placeholder="requirements.txt"><span class="field-help" data-i18n="newBot.dependencyHelp">Python: requirements.txt · Node: package.json</span></label>
+          <label><span data-i18n="fields.mainFile">Main file</span><input name="main_file" id="mainFileInput" placeholder="bot.py"><span class="field-help" data-i18n="newBot.mainFileHelp">The file that starts your bot, e.g. bot.py / index.js.</span></label>
         </div>
-        <label>Kurulum komutu<textarea name="install_command" id="installCommandInput" rows="2" spellcheck="false"></textarea><span class="field-help"><code>{{dependency_file}}</code> otomatik dosya yoluna dönüşür.</span></label>
-        <label>Startup komutu<textarea name="startup" id="startupInput" rows="2" spellcheck="false"></textarea><span class="field-help"><code>{{main_file}}</code> otomatik ana dosya yoluna dönüşür. Dependency adımı bundan önce çalışır.</span></label>
+        <label><span data-i18n="fields.installCommand">Install command</span><textarea name="install_command" id="installCommandInput" rows="2" spellcheck="false"></textarea><span class="field-help"><code>{{dependency_file}}</code> <span data-i18n="newBot.dependencyTokenHelp">is replaced with the dependency file path automatically.</span></span></label>
+        <label><span data-i18n="fields.startupCommand">Startup command</span><textarea name="startup" id="startupInput" rows="2" spellcheck="false"></textarea><span class="field-help"><code>{{main_file}}</code> <span data-i18n="newBot.startupTokenHelp">is replaced with the main file path automatically. Dependencies run first.</span></span></label>
       </div>
 
       <div class="form-section">
-        <div class="form-section-title"><svg class="icon"><use href="/icons.svg#cpu"></use></svg> Kaynaklar</div>
+        <div class="form-section-title"><svg class="icon"><use href="/icons.svg#cpu"></use></svg><span data-i18n="newBot.resources">Resources</span></div>
         <div class="grid two">
           <label>RAM (MB)<input name="memory_mb" type="number" min="64" max="32768" value="512" required></label>
           <label>CPU<input name="cpus" type="number" min="0.1" max="32" step="0.1" value="0.5" required></label>
         </div>
       </div>
 
-      <div class="dialog-actions"><button type="button" class="btn ghost" data-close-dialog>Vazgeç</button><button type="submit" class="btn primary"><svg class="icon"><use href="/icons.svg#plus"></use></svg> Botu Oluştur</button></div>
+      <div class="dialog-actions"><button type="button" class="btn ghost" data-close-dialog data-i18n="actions.cancel">Cancel</button><button type="submit" class="btn primary"><svg class="icon"><use href="/icons.svg#plus"></use></svg><span data-i18n="newBot.create">Create Bot</span></button></div>
     </form>
   </dialog>
 
   <dialog id="editorDialog" class="dialog editor-dialog">
     <div class="dialog-card editor-card">
-      <div class="dialog-head"><div><span class="eyebrow">DOSYA EDİTÖRÜ</span><h2 id="editorTitle">Dosya</h2><p id="editorPath" class="mono"></p></div><button type="button" class="icon-btn" id="closeEditor"><svg class="icon"><use href="/icons.svg#close"></use></svg></button></div>
+      <div class="dialog-head"><div><span class="eyebrow" data-i18n="editor.eyebrow">FILE EDITOR</span><h2 id="editorTitle">File</h2><p id="editorPath" class="mono"></p></div><button type="button" class="icon-btn" id="closeEditor" data-i18n-aria="actions.close" aria-label="Close"><svg class="icon"><use href="/icons.svg#close"></use></svg></button></div>
       <textarea id="fileEditor" class="code-editor" spellcheck="false"></textarea>
-      <div class="dialog-actions"><button type="button" class="btn ghost" id="cancelEditor">Kapat</button><button type="button" class="btn primary" id="saveEditor"><svg class="icon"><use href="/icons.svg#save"></use></svg> Kaydet</button></div>
+      <div class="dialog-actions"><button type="button" class="btn ghost" id="cancelEditor" data-i18n="actions.close">Close</button><button type="button" class="btn primary" id="saveEditor"><svg class="icon"><use href="/icons.svg#save"></use></svg><span data-i18n="actions.save">Save</span></button></div>
     </div>
   </dialog>
 
-  <script src="/app.js" defer></script>
+  <script src="/app.js?v=0.5.0" defer></script>
 </body>
 </html>

@@ -1,5 +1,11 @@
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+
+function initialLocale() {
+  try { return localStorage.getItem('elitecp_locale') === 'tr' ? 'tr' : 'en'; }
+  catch { return 'en'; }
+}
+
 const state = {
   user: null,
   bots: [],
@@ -13,7 +19,384 @@ const state = {
   system: null,
   systemTimer: null,
   systemHistory: { cpu: [], memory: [], disk: [] },
+  locale: initialLocale(),
 };
+
+
+
+const translations = {
+  en: {
+    'login.badge': 'Isolated Docker runtime',
+    'login.heroTitle': 'Run your bots fast, clean and from one control plane.',
+    'login.heroText': 'A lightweight control panel focused on Python and Node.js bots for Discord and Telegram.',
+    'login.featureConsole': 'Live console',
+    'login.featureDeps': 'Automatic dependency install',
+    'login.featureFiles': 'File manager',
+    'login.title': 'Welcome back',
+    'login.subtitle': 'Sign in to continue to your control panel.',
+    'login.username': 'Username',
+    'login.password': 'Password',
+    'login.submit': 'Sign in',
+    'nav.dashboard': 'Dashboard',
+    'nav.bots': 'Bots',
+    'nav.panel': 'Panel',
+    'nav.logout': 'Sign out',
+    'nav.language': 'Language',
+    'nav.openMenu': 'Open menu',
+    'nav.closeMenu': 'Close menu',
+    'nav.mobileNavigation': 'Mobile navigation',
+    'actions.newBot': 'New Bot',
+    'actions.close': 'Close',
+    'actions.cancel': 'Cancel',
+    'actions.save': 'Save',
+    'actions.refresh': 'Refresh',
+    'actions.manage': 'Manage',
+    'actions.start': 'Start',
+    'actions.restart': 'Restart',
+    'actions.stop': 'Stop',
+    'actions.edit': 'Edit',
+    'actions.run': 'Run',
+    'actions.clear': 'Clear',
+    'actions.upload': 'Upload',
+    'actions.delete': 'Delete',
+    'actions.file': 'File',
+    'actions.folder': 'Folder',
+    'actions.upDirectory': 'Up Directory',
+    'system.checkingDocker': 'Checking Docker',
+    'system.dockerReady': 'Docker ready · v{version}',
+    'system.dockerUnavailable': 'Docker unavailable',
+    'system.error': 'System error',
+    'system.ready': 'Docker ready',
+    'system.dockerError': 'Docker error',
+    'status.running': 'Running',
+    'status.offline': 'Offline',
+    'status.restarting': 'Restarting',
+    'status.paused': 'Paused',
+    'status.created': 'Ready',
+    'status.dead': 'Error',
+    'status.removing': 'Removing',
+    'status.unknown': 'Unknown',
+    'newBot.eyebrow': 'NEW INSTANCE',
+    'newBot.title': 'Create Bot',
+    'newBot.subtitle': 'Upload your files; eLite CP installs dependencies and then starts your bot.',
+    'newBot.general': 'General',
+    'newBot.botName': 'Bot name',
+    'newBot.startupPlan': 'Startup Plan',
+    'newBot.dependencyHelp': 'Python: requirements.txt · Node: package.json',
+    'newBot.mainFileHelp': 'The file that starts your bot, e.g. bot.py / index.js.',
+    'newBot.dependencyTokenHelp': 'is replaced with the dependency file path automatically.',
+    'newBot.startupTokenHelp': 'is replaced with the main file path automatically. Dependencies run first.',
+    'newBot.resources': 'Resources',
+    'newBot.create': 'Create Bot',
+    'pipeline.prepareRuntime': 'Prepare runtime',
+    'pipeline.installDependencies': 'Install dependencies',
+    'pipeline.startBot': 'Start bot',
+    'pipeline.runtimePrepared': 'Runtime is prepared',
+    'pipeline.dependenciesInstalled': 'Dependencies are installed',
+    'pipeline.noInstallStep': 'No install step',
+    'pipeline.fileStarted': '{file} is started',
+    'fields.dependencyFile': 'Dependency file',
+    'fields.mainFile': 'Main file',
+    'fields.installCommand': 'Install command',
+    'fields.startupCommand': 'Startup command',
+    'editor.eyebrow': 'FILE EDITOR',
+    'dashboard.subtitle': 'A quick overview of your bot infrastructure and VPS resources.',
+    'dashboard.serverResources': 'Server resources',
+    'dashboard.waitingMetrics': 'Waiting for metrics...',
+    'dashboard.noMetrics': 'Server metrics are not available yet.',
+    'dashboard.live4s': 'Live · 4 sec',
+    'dashboard.cores': '{count} cores',
+    'dashboard.used': '{value} used',
+    'dashboard.everythingFine': 'Everything is under control.',
+    'dashboard.needsAttention': 'Something needs your attention.',
+    'dashboard.botSummary': '{running} bots running, {stopped} bots idle.',
+    'dashboard.firstBot': 'Create your first bot and get it running in seconds.',
+    'dashboard.instancesNeedAttention': '{count} instances need attention',
+    'dashboard.infrastructureHealthy': 'Infrastructure healthy',
+    'dashboard.dockerNeedsCheck': 'Docker needs attention',
+    'dashboard.attention': 'Attention',
+    'dashboard.systemHealthy': 'System healthy',
+    'dashboard.runtimeOnline': 'Docker runtime online',
+    'dashboard.runtimeChecking': 'Checking Docker runtime',
+    'dashboard.botSummaryAria': 'Bot summary',
+    'dashboard.total': 'Total',
+    'dashboard.running': 'Running',
+    'dashboard.offline': 'Offline',
+    'dashboard.alerts': 'Alerts',
+    'dashboard.botsTitle': 'Bots',
+    'dashboard.botsText': 'Manage Python and Node.js containers from one place.',
+    'bots.subtitle': 'Manage your Discord and Telegram bot containers.',
+    'bots.title': 'Your bot infrastructure',
+    'bots.summary': '{total} instances · {running} running · isolated with Docker.',
+    'bots.empty': 'No bots yet. Create your first instance with New Bot.',
+    'toast.botCreated': 'Bot created. Upload your files, then press Start.',
+    'tabs.overview': 'Overview',
+    'tabs.console': 'Console',
+    'tabs.files': 'Files',
+    'tabs.variables': 'Variables',
+    'tabs.startupSettings': 'Startup & Settings',
+    'detail.filesLoading': 'Loading files...',
+    'detail.variablesLoading': 'Loading variables...',
+    'detail.oom': 'The container was terminated because it reached the RAM limit (OOM). Increase the memory limit or reduce the bot memory usage.',
+    'detail.lastExit': 'Last exit code: {code}{error}. Check the logs in the Console tab.',
+    'detail.runningNote': 'Container is running. If the dependency file changes, dependencies are installed again automatically on the next start/restart.',
+    'detail.offlineNote': 'Bot is offline. Upload your files and press Start; the startup pipeline will run automatically.',
+    'overview.liveResources': 'Live resources',
+    'overview.status': 'Status',
+    'overview.currentUsage': 'Current usage',
+    'overview.limit': 'Limit {value} MB',
+    'overview.network': 'Network',
+    'overview.startupPipeline': 'Startup pipeline',
+    'overview.live5s': '5 sec',
+    'overview.isolatedVenv': 'isolated per-bot venv',
+    'overview.isolatedNodeModules': 'isolated node_modules',
+    'botAction.starting': 'Starting bot...',
+    'botAction.restarting': 'Restarting bot...',
+    'botAction.stopping': 'Stopping bot...',
+    'botAction.rebuilding': 'Rebuilding container...',
+    'botAction.reinstalling': 'Dependencies will be reinstalled...',
+    'botAction.applying': 'Applying action...',
+    'botAction.reinstallDone': 'Dependency installation triggered. Follow the progress in Console.',
+    'botAction.done': 'Action completed.',
+    'console.live': 'Live Console',
+    'console.clear': 'Clear',
+    'console.dependencies': 'Dependencies',
+    'console.connecting': 'eLite CP console is connecting...',
+    'console.placeholder': 'Run command · pip list, python --version, ls -la ...',
+    'console.waiting': 'Console connection is waiting; it will reconnect when the container starts.',
+    'console.noOutput': '(no output)',
+    'files.dropzone': 'Drop ZIP or files here · ZIP archives are extracted automatically and safely',
+    'files.empty': 'This folder is empty.',
+    'files.uploading': 'Uploading {count} file(s)...',
+    'files.uploaded': 'Files uploaded. If the dependency file changed, the next start/restart will install dependencies automatically.',
+    'files.saved': 'File saved.',
+    'files.filePrompt': 'File name (e.g. bot.py):',
+    'files.folderPrompt': 'Folder name:',
+    'files.deleteConfirm': 'Delete this path?\n{path}',
+    'files.deleted': 'Deleted.',
+    'env.title': 'Environment Variables',
+    'env.variable': 'Variable',
+    'env.note': 'Store secrets such as Discord / Telegram tokens here. They are passed to the container environment when saved.',
+    'env.saveRebuild': 'Save & Rebuild',
+    'env.value': 'value',
+    'env.saved': 'Variables saved and container updated.',
+    'settings.generalResources': 'General & Resources',
+    'settings.botName': 'Bot name',
+    'settings.startupPlan': 'Startup Plan',
+    'settings.dependencyHelp': 'Dependency install runs again automatically when this file changes.',
+    'settings.mainFileHelp': 'The actual entry file that starts the bot.',
+    'settings.example': 'Example:',
+    'settings.startupHelp': 'Dependencies run first, then this command.',
+    'settings.reinstallDependencies': 'Reinstall Dependencies',
+    'settings.rebuildContainer': 'Rebuild Container',
+    'settings.saveRebuild': 'Save & Rebuild',
+    'settings.dangerZone': 'Danger Zone',
+    'settings.dangerText': 'Permanently deletes the bot, its Docker container and all bot files.',
+    'settings.deleteBot': 'Delete Bot',
+    'settings.saved': 'Startup plan and settings saved.',
+    'settings.deleteConfirm': 'Permanently delete {name} and all of its files?',
+    'settings.deleted': 'Bot deleted.',
+  },
+  tr: {
+    'login.badge': 'Docker ile izole runtime',
+    'login.heroTitle': 'Botlarını hızlı, sade ve tek panelden yönet.',
+    'login.heroText': 'Discord ve Telegram botları için Python ve Node.js odaklı hafif kontrol paneli.',
+    'login.featureConsole': 'Canlı console',
+    'login.featureDeps': 'Otomatik dependency kurulumu',
+    'login.featureFiles': 'Dosya yöneticisi',
+    'login.title': 'Tekrar hoş geldin',
+    'login.subtitle': 'Kontrol paneline devam etmek için giriş yap.',
+    'login.username': 'Kullanıcı adı',
+    'login.password': 'Şifre',
+    'login.submit': 'Giriş Yap',
+    'nav.dashboard': 'Dashboard',
+    'nav.bots': 'Botlar',
+    'nav.panel': 'Panel',
+    'nav.logout': 'Çıkış Yap',
+    'nav.language': 'Dil',
+    'nav.openMenu': 'Menüyü aç',
+    'nav.closeMenu': 'Menüyü kapat',
+    'nav.mobileNavigation': 'Mobil navigasyon',
+    'actions.newBot': 'Yeni Bot',
+    'actions.close': 'Kapat',
+    'actions.cancel': 'Vazgeç',
+    'actions.save': 'Kaydet',
+    'actions.refresh': 'Yenile',
+    'actions.manage': 'Yönet',
+    'actions.start': 'Başlat',
+    'actions.restart': 'Restart',
+    'actions.stop': 'Durdur',
+    'actions.edit': 'Düzenle',
+    'actions.run': 'Çalıştır',
+    'actions.clear': 'Temizle',
+    'actions.upload': 'Yükle',
+    'actions.delete': 'Sil',
+    'actions.file': 'Dosya',
+    'actions.folder': 'Klasör',
+    'actions.upDirectory': 'Üst Dizin',
+    'system.checkingDocker': 'Docker kontrol ediliyor',
+    'system.dockerReady': 'Docker hazır · v{version}',
+    'system.dockerUnavailable': 'Docker erişilemiyor',
+    'system.error': 'Sistem hatası',
+    'system.ready': 'Docker hazır',
+    'system.dockerError': 'Docker hata',
+    'status.running': 'Çalışıyor',
+    'status.offline': 'Kapalı',
+    'status.restarting': 'Yeniden başlatılıyor',
+    'status.paused': 'Duraklatıldı',
+    'status.created': 'Hazır',
+    'status.dead': 'Hata',
+    'status.removing': 'Siliniyor',
+    'status.unknown': 'Bilinmiyor',
+    'newBot.eyebrow': 'YENİ INSTANCE',
+    'newBot.title': 'Bot Oluştur',
+    'newBot.subtitle': 'Dosyaları yükle; eLite CP dependency adımını çalıştırıp ardından botunu başlatsın.',
+    'newBot.general': 'Genel',
+    'newBot.botName': 'Bot adı',
+    'newBot.startupPlan': 'Startup Planı',
+    'newBot.dependencyHelp': 'Python: requirements.txt · Node: package.json',
+    'newBot.mainFileHelp': 'Botu çalıştıran dosya; örn. bot.py / index.js.',
+    'newBot.dependencyTokenHelp': 'otomatik olarak dependency dosya yoluna dönüşür.',
+    'newBot.startupTokenHelp': 'otomatik ana dosya yoluna dönüşür. Önce dependency adımı çalışır.',
+    'newBot.resources': 'Kaynaklar',
+    'newBot.create': 'Botu Oluştur',
+    'pipeline.prepareRuntime': 'Runtime hazırlanır',
+    'pipeline.installDependencies': 'Kütüphaneler kurulur',
+    'pipeline.startBot': 'Bot başlatılır',
+    'pipeline.runtimePrepared': 'Runtime hazırlanır',
+    'pipeline.dependenciesInstalled': 'Dependencies kurulur',
+    'pipeline.noInstallStep': 'Kurulum adımı yok',
+    'pipeline.fileStarted': '{file} başlatılır',
+    'fields.dependencyFile': 'Dependency dosyası',
+    'fields.mainFile': 'Ana dosya',
+    'fields.installCommand': 'Kurulum komutu',
+    'fields.startupCommand': 'Startup komutu',
+    'editor.eyebrow': 'DOSYA EDİTÖRÜ',
+    'dashboard.subtitle': 'Bot altyapının ve VPS kaynaklarının kısa özeti.',
+    'dashboard.serverResources': 'Sunucu kaynakları',
+    'dashboard.waitingMetrics': 'Veriler bekleniyor...',
+    'dashboard.noMetrics': 'Sunucu metrikleri henüz alınamadı.',
+    'dashboard.live4s': 'Canlı · 4 sn',
+    'dashboard.cores': '{count} çekirdek',
+    'dashboard.used': '{value} kullanılan',
+    'dashboard.everythingFine': 'Her şey kontrol altında.',
+    'dashboard.needsAttention': 'Kontrol edilmesi gereken bir şey var.',
+    'dashboard.botSummary': '{running} bot aktif, {stopped} bot beklemede.',
+    'dashboard.firstBot': 'İlk botunu oluşturup saniyeler içinde çalıştırabilirsin.',
+    'dashboard.instancesNeedAttention': '{count} instance kontrol bekliyor',
+    'dashboard.infrastructureHealthy': 'Altyapı sağlıklı',
+    'dashboard.dockerNeedsCheck': 'Docker kontrol gerekli',
+    'dashboard.attention': 'Dikkat',
+    'dashboard.systemHealthy': 'Sistem sağlıklı',
+    'dashboard.runtimeOnline': 'Docker runtime online',
+    'dashboard.runtimeChecking': 'Docker runtime kontrol ediliyor',
+    'dashboard.botSummaryAria': 'Bot özeti',
+    'dashboard.total': 'Toplam',
+    'dashboard.running': 'Çalışan',
+    'dashboard.offline': 'Kapalı',
+    'dashboard.alerts': 'Uyarı',
+    'dashboard.botsTitle': 'Botlar',
+    'dashboard.botsText': 'Python ve Node.js containerlarını tek yerden yönet.',
+    'bots.subtitle': 'Discord ve Telegram bot containerlarını yönet.',
+    'bots.title': 'Bot altyapın',
+    'bots.summary': '{total} instance · {running} aktif · Docker ile birbirinden izole.',
+    'bots.empty': 'Henüz bot yok. Yeni Bot ile ilk instanceını oluştur.',
+    'toast.botCreated': 'Bot oluşturuldu. Dosyaları yükledikten sonra Başlat diyebilirsin.',
+    'tabs.overview': 'Genel',
+    'tabs.console': 'Console',
+    'tabs.files': 'Dosyalar',
+    'tabs.variables': 'Variables',
+    'tabs.startupSettings': 'Startup & Ayarlar',
+    'detail.filesLoading': 'Dosyalar yükleniyor...',
+    'detail.variablesLoading': 'Variables yükleniyor...',
+    'detail.oom': 'Container RAM limiti nedeniyle sonlandırıldı (OOM). RAM limitini yükselt veya botun bellek kullanımını azalt.',
+    'detail.lastExit': 'Son çıkış kodu: {code}{error}. Console sekmesindeki logları kontrol et.',
+    'detail.runningNote': 'Container aktif. Dependency dosyası değişirse sonraki start/restart sırasında otomatik olarak tekrar kurulur.',
+    'detail.offlineNote': 'Bot kapalı. Dosyalarını yükledikten sonra Başlat dediğinde startup pipeline otomatik çalışır.',
+    'overview.liveResources': 'Canlı kaynaklar',
+    'overview.status': 'Durum',
+    'overview.currentUsage': 'Anlık kullanım',
+    'overview.limit': 'Limit {value} MB',
+    'overview.network': 'Network',
+    'overview.startupPipeline': 'Startup pipeline',
+    'overview.live5s': '5 sn',
+    'overview.isolatedVenv': 'izole per-bot venv',
+    'overview.isolatedNodeModules': 'izole node_modules',
+    'botAction.starting': 'Bot başlatılıyor...',
+    'botAction.restarting': 'Bot yeniden başlatılıyor...',
+    'botAction.stopping': 'Bot durduruluyor...',
+    'botAction.rebuilding': 'Container yeniden oluşturuluyor...',
+    'botAction.reinstalling': 'Dependencies yeniden kurulacak...',
+    'botAction.applying': 'İşlem uygulanıyor...',
+    'botAction.reinstallDone': 'Dependency kurulumu tetiklendi. Console’dan takip edebilirsin.',
+    'botAction.done': 'İşlem tamamlandı.',
+    'console.live': 'Canlı Console',
+    'console.clear': 'Temizle',
+    'console.dependencies': 'Dependencies',
+    'console.connecting': 'eLite CP console bağlanıyor...',
+    'console.placeholder': 'Komut çalıştır · pip list, python --version, ls -la ...',
+    'console.waiting': 'Console bağlantısı beklemede; container başlatıldığında tekrar bağlanır.',
+    'console.noOutput': '(çıktı yok)',
+    'files.dropzone': 'ZIP veya dosyaları buraya bırak · ZIP güvenli şekilde otomatik açılır',
+    'files.empty': 'Bu klasör boş.',
+    'files.uploading': '{count} dosya yükleniyor...',
+    'files.uploaded': 'Dosyalar yüklendi. Dependency dosyası değiştiyse sonraki start/restart otomatik kuracak.',
+    'files.saved': 'Dosya kaydedildi.',
+    'files.filePrompt': 'Dosya adı (örn. bot.py):',
+    'files.folderPrompt': 'Klasör adı:',
+    'files.deleteConfirm': 'Bu yol silinsin mi?\n{path}',
+    'files.deleted': 'Silindi.',
+    'env.title': 'Environment Variables',
+    'env.variable': 'Variable',
+    'env.note': 'Discord / Telegram token gibi secret değerleri burada tutabilirsin. Kaydedildiğinde container environmentına aktarılır.',
+    'env.saveRebuild': 'Kaydet & Rebuild',
+    'env.value': 'değer',
+    'env.saved': 'Variables kaydedildi ve container güncellendi.',
+    'settings.generalResources': 'Genel & Kaynaklar',
+    'settings.botName': 'Bot adı',
+    'settings.startupPlan': 'Startup Planı',
+    'settings.dependencyHelp': 'Dosya değiştiğinde dependency kurulumu otomatik yeniden çalışır.',
+    'settings.mainFileHelp': 'Botu gerçekten çalıştıran giriş dosyası.',
+    'settings.example': 'Örn:',
+    'settings.startupHelp': 'Önce dependency adımı, sonra bu komut çalışır.',
+    'settings.reinstallDependencies': 'Dependencies’i Yeniden Kur',
+    'settings.rebuildContainer': 'Container Rebuild',
+    'settings.saveRebuild': 'Kaydet & Rebuild',
+    'settings.dangerZone': 'Tehlikeli Alan',
+    'settings.dangerText': 'Botu, Docker containerını ve botun tüm dosyalarını kalıcı olarak siler.',
+    'settings.deleteBot': 'Botu Sil',
+    'settings.saved': 'Startup planı ve ayarlar kaydedildi.',
+    'settings.deleteConfirm': '{name} ve tüm dosyaları kalıcı olarak silinsin mi?',
+    'settings.deleted': 'Bot silindi.',
+  },
+};
+
+function t(key, vars = {}) {
+  let text = translations[state.locale]?.[key] ?? translations.en[key] ?? key;
+  Object.entries(vars).forEach(([name, value]) => {
+    text = text.replaceAll(`{${name}}`, String(value));
+  });
+  return text;
+}
+
+function applyStaticTranslations() {
+  document.documentElement.lang = state.locale;
+  $$('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $$('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+  $$('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
+  $$('[data-lang]').forEach(el => el.classList.toggle('active', el.dataset.lang === state.locale));
+}
+
+async function setLocale(locale) {
+  state.locale = locale === 'tr' ? 'tr' : 'en';
+  try { localStorage.setItem('elitecp_locale', state.locale); } catch {}
+  applyStaticTranslations();
+  if (state.user) {
+    stopConsole();
+    await refreshSystem();
+    render();
+  }
+}
 
 const runtimeDefaults = {
   python: {
@@ -79,9 +462,14 @@ function formatUptime(seconds) {
   const days = Math.floor(s / 86400); s %= 86400;
   const hours = Math.floor(s / 3600); s %= 3600;
   const mins = Math.floor(s / 60);
-  if (days) return `${days}g ${hours}sa ${mins}dk`;
-  if (hours) return `${hours}sa ${mins}dk`;
-  return `${mins}dk`;
+  if (state.locale === 'tr') {
+    if (days) return `${days}g ${hours}sa ${mins}dk`;
+    if (hours) return `${hours}sa ${mins}dk`;
+    return `${mins}dk`;
+  }
+  if (days) return `${days}d ${hours}h ${mins}m`;
+  if (hours) return `${hours}h ${mins}m`;
+  return `${mins}m`;
 }
 
 function clamp(v, min = 0, max = 100) {
@@ -111,16 +499,18 @@ function sparkline(values = []) {
 }
 
 function statusLabel(s) {
-  return ({
-    running: 'Çalışıyor', offline: 'Kapalı', restarting: 'Restart', paused: 'Duraklatıldı',
-    created: 'Hazır', dead: 'Hata', removing: 'Siliniyor', unknown: 'Bilinmiyor',
-  }[s] || s || 'Bilinmiyor');
+  const key = ({
+    running: 'status.running', offline: 'status.offline', restarting: 'status.restarting', paused: 'status.paused',
+    created: 'status.created', dead: 'status.dead', removing: 'status.removing', unknown: 'status.unknown',
+  })[s] || 'status.unknown';
+  return t(key);
 }
 
 function runtimeLabel(runtime) { return runtime === 'python' ? 'Python 3.12' : 'Node.js 22'; }
 function runtimeShort(runtime) { return runtime === 'python' ? 'PY' : 'JS'; }
 
 async function boot() {
+  applyStaticTranslations();
   wireStatic();
   try {
     const me = await api('/api/me');
@@ -161,6 +551,7 @@ function wireStatic() {
     render();
   }));
   $('#mobileNewBot')?.addEventListener('click', openNewBot);
+  $$('[data-lang]').forEach(b => b.addEventListener('click', () => setLocale(b.dataset.lang)));
 }
 
 function openSidebar() {
@@ -223,11 +614,11 @@ async function refreshSystem() {
     state.system = s;
     pushMetricHistory(s.metrics);
     $('#dockerDot').className = `dot ${s.docker_ok ? 'ok' : 'bad'}`;
-    $('#dockerText').textContent = s.docker_ok ? `Docker hazır · v${s.version}` : 'Docker erişilemiyor';
+    $('#dockerText').textContent = s.docker_ok ? t('system.dockerReady', { version: s.version }) : t('system.dockerUnavailable');
     return s;
   } catch {
     $('#dockerDot').className = 'dot bad';
-    $('#dockerText').textContent = 'Sistem hatası';
+    $('#dockerText').textContent = t('system.error');
     return null;
   }
 }
@@ -252,7 +643,7 @@ function header(title, sub) {
 }
 
 function emptyBots() {
-  return `<div class="empty"><div class="empty-icon">${icon('bot')}</div>Henüz bot yok. <b>Yeni Bot</b> ile ilk instance'ını oluştur.</div>`;
+  return `<div class="empty"><div class="empty-icon">${icon('bot')}</div>${t('bots.empty')}</div>`;
 }
 
 function botCards(bots) {
@@ -270,7 +661,7 @@ function botCards(bots) {
       <div class="bot-resources">
         <span>${icon('memory')}<span>RAM</span><b>${b.memory_mb} MB</b></span>
         <span>${icon('cpu')}<span>CPU</span><b>${b.cpus}</b></span>
-        <span class="bot-open">Yönet ${icon('chevron-right')}</span>
+        <span class="bot-open">${t('actions.manage')} ${icon('chevron-right')}</span>
       </div>
     </article>`).join('')}</div>`;
 }
@@ -285,40 +676,40 @@ function wireBotCards() {
 function serverMetricCardsHTML() {
   const m = state.system?.metrics;
   if (!m) {
-    return `<section class="resource-section"><div class="section-head"><div><span class="section-kicker">VPS HEALTH</span><h2>Sunucu kaynakları</h2></div><span class="server-live">Veriler bekleniyor...</span></div><div class="empty resource-empty">Sunucu metrikleri henüz alınamadı.</div></section>`;
+    return `<section class="resource-section"><div class="section-head"><div><span class="section-kicker">VPS HEALTH</span><h2>${t('dashboard.serverResources')}</h2></div><span class="server-live">${t('dashboard.waitingMetrics')}</span></div><div class="empty resource-empty">${t('dashboard.noMetrics')}</div></section>`;
   }
   const cpu = clamp(m.cpu_percent);
   const memory = clamp(m.memory_percent);
   const disk = clamp(m.disk_percent);
   return `<section class="resource-section">
     <div class="section-head">
-      <div><span class="section-kicker">VPS HEALTH</span><h2>Sunucu kaynakları</h2><p>${esc(m.hostname || 'VPS')} · ${esc(m.os || 'Linux')}</p></div>
-      <span class="server-live"><span class="live-pulse"></span> Canlı · 4 sn</span>
+      <div><span class="section-kicker">VPS HEALTH</span><h2>${t('dashboard.serverResources')}</h2><p>${esc(m.hostname || 'VPS')} · ${esc(m.os || 'Linux')}</p></div>
+      <span class="server-live"><span class="live-pulse"></span> ${t('dashboard.live4s')}</span>
     </div>
     <div class="server-metrics-grid">
       <article class="server-metric" data-system-card="cpu">
         <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('cpu')}</span><span>CPU</span></div><b id="sysCpuValue">${formatPercent(cpu)}</b></div>
         <div class="server-progress"><span id="sysCpuBar" style="width:${cpu}%"></span></div>
         <div id="sysCpuGraph" class="server-graph">${sparkline(state.systemHistory.cpu)}</div>
-        <div class="server-metric-foot"><span id="sysCpuSub">${m.cpu_cores || 1} çekirdek</span><span id="sysLoadSub">Load ${Number(m.load_1 || 0).toFixed(2)}</span></div>
+        <div class="server-metric-foot"><span id="sysCpuSub">${t('dashboard.cores', { count: m.cpu_cores || 1 })}</span><span id="sysLoadSub">Load ${Number(m.load_1 || 0).toFixed(2)}</span></div>
       </article>
       <article class="server-metric" data-system-card="memory">
         <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('memory')}</span><span>RAM</span></div><b id="sysRamValue">${formatPercent(memory)}</b></div>
         <div class="server-progress"><span id="sysRamBar" style="width:${memory}%"></span></div>
         <div id="sysRamGraph" class="server-graph">${sparkline(state.systemHistory.memory)}</div>
-        <div class="server-metric-foot"><span id="sysRamUsed">${formatBytes(m.memory_used_bytes)} kullanılan</span><span id="sysRamTotal">/ ${formatBytes(m.memory_total_bytes)}</span></div>
+        <div class="server-metric-foot"><span id="sysRamUsed">${t('dashboard.used', { value: formatBytes(m.memory_used_bytes) })}</span><span id="sysRamTotal">/ ${formatBytes(m.memory_total_bytes)}</span></div>
       </article>
       <article class="server-metric" data-system-card="disk">
         <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('disk')}</span><span>Disk</span></div><b id="sysDiskValue">${formatPercent(disk)}</b></div>
         <div class="server-progress"><span id="sysDiskBar" style="width:${disk}%"></span></div>
         <div id="sysDiskGraph" class="server-graph">${sparkline(state.systemHistory.disk)}</div>
-        <div class="server-metric-foot"><span id="sysDiskUsed">${formatBytes(m.disk_used_bytes)} kullanılan</span><span id="sysDiskTotal">/ ${formatBytes(m.disk_total_bytes)}</span></div>
+        <div class="server-metric-foot"><span id="sysDiskUsed">${t('dashboard.used', { value: formatBytes(m.disk_used_bytes) })}</span><span id="sysDiskTotal">/ ${formatBytes(m.disk_total_bytes)}</span></div>
       </article>
       <article class="server-metric uptime-metric" data-system-card="uptime">
         <div class="server-metric-top"><div class="server-metric-title"><span class="server-metric-icon">${icon('clock')}</span><span>Uptime</span></div><span class="status running"><i class="status-dot"></i>Online</span></div>
         <div id="sysUptime" class="uptime-value">${formatUptime(m.uptime_seconds)}</div>
         <div class="uptime-track"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-        <div class="server-metric-foot"><span id="sysHost">${esc(m.hostname || 'VPS')}</span><span>${state.system?.docker_ok ? 'Docker hazır' : 'Docker hata'}</span></div>
+        <div class="server-metric-foot"><span id="sysHost">${esc(m.hostname || 'VPS')}</span><span>${state.system?.docker_ok ? t('system.ready') : t('system.dockerError')}</span></div>
       </article>
     </div>
   </section>`;
@@ -333,17 +724,17 @@ function updateSystemCards() {
   $('#sysCpuValue').textContent = formatPercent(cpu);
   $('#sysCpuBar').style.width = `${cpu}%`;
   $('#sysCpuGraph').innerHTML = sparkline(state.systemHistory.cpu);
-  $('#sysCpuSub').textContent = `${m.cpu_cores || 1} çekirdek`;
+  $('#sysCpuSub').textContent = t('dashboard.cores', { count: m.cpu_cores || 1 });
   $('#sysLoadSub').textContent = `Load ${Number(m.load_1 || 0).toFixed(2)}`;
   $('#sysRamValue').textContent = formatPercent(memory);
   $('#sysRamBar').style.width = `${memory}%`;
   $('#sysRamGraph').innerHTML = sparkline(state.systemHistory.memory);
-  $('#sysRamUsed').textContent = `${formatBytes(m.memory_used_bytes)} kullanılan`;
+  $('#sysRamUsed').textContent = t('dashboard.used', { value: formatBytes(m.memory_used_bytes) });
   $('#sysRamTotal').textContent = `/ ${formatBytes(m.memory_total_bytes)}`;
   $('#sysDiskValue').textContent = formatPercent(disk);
   $('#sysDiskBar').style.width = `${disk}%`;
   $('#sysDiskGraph').innerHTML = sparkline(state.systemHistory.disk);
-  $('#sysDiskUsed').textContent = `${formatBytes(m.disk_used_bytes)} kullanılan`;
+  $('#sysDiskUsed').textContent = t('dashboard.used', { value: formatBytes(m.disk_used_bytes) });
   $('#sysDiskTotal').textContent = `/ ${formatBytes(m.disk_total_bytes)}`;
   $('#sysUptime').textContent = formatUptime(m.uptime_seconds);
   $('#sysHost').textContent = m.hostname || 'VPS';
@@ -356,29 +747,31 @@ async function refreshDashboardMetrics() {
 }
 
 function renderDashboard() {
-  header('Dashboard', 'Bot altyapının ve VPS kaynaklarının kısa özeti.');
+  header('Dashboard', t('dashboard.subtitle'));
   const running = state.bots.filter(b => b.status === 'running').length;
   const stopped = Math.max(0, state.bots.length - running);
   const problem = state.bots.filter(b => b.state?.oom_killed || (b.state?.exit_code > 0 && b.status !== 'running')).length;
-  const healthText = problem ? `${problem} instance kontrol bekliyor` : (state.system?.docker_ok ? 'Altyapı sağlıklı' : 'Docker kontrol gerekli');
+  const healthText = problem
+    ? t('dashboard.instancesNeedAttention', { count: problem })
+    : (state.system?.docker_ok ? t('dashboard.infrastructureHealthy') : t('dashboard.dockerNeedsCheck'));
   $('#content').innerHTML = `
     <section class="dashboard-hero">
       <div class="dashboard-hero-copy">
         <span class="section-kicker">ELITE CONTROL PLANE</span>
-        <h2>${problem ? 'Kontrol edilmesi gereken bir şey var.' : 'Her şey kontrol altında.'}</h2>
-        <p>${state.bots.length ? `${running} bot aktif, ${stopped} bot beklemede.` : 'İlk botunu oluşturup saniyeler içinde çalıştırabilirsin.'} ${esc(healthText)}.</p>
+        <h2>${problem ? t('dashboard.needsAttention') : t('dashboard.everythingFine')}</h2>
+        <p>${state.bots.length ? t('dashboard.botSummary', { running, stopped }) : t('dashboard.firstBot')} ${esc(healthText)}.</p>
       </div>
-      <div class="hero-status"><span class="hero-status-icon ${problem ? 'warn' : ''}">${icon(problem ? 'alert' : 'shield')}</span><div><b>${problem ? 'Dikkat' : 'System healthy'}</b><span>${state.system?.docker_ok ? 'Docker runtime online' : 'Docker runtime kontrol ediliyor'}</span></div></div>
+      <div class="hero-status"><span class="hero-status-icon ${problem ? 'warn' : ''}">${icon(problem ? 'alert' : 'shield')}</span><div><b>${problem ? t('dashboard.attention') : t('dashboard.systemHealthy')}</b><span>${state.system?.docker_ok ? t('dashboard.runtimeOnline') : t('dashboard.runtimeChecking')}</span></div></div>
     </section>
     ${serverMetricCardsHTML()}
-    <section class="summary-strip" aria-label="Bot özeti">
-      <div class="summary-item"><span class="summary-icon">${icon('bot')}</span><div><small>Toplam</small><strong>${state.bots.length}</strong></div></div>
-      <div class="summary-item"><span class="summary-icon green">${icon('play')}</span><div><small>Çalışan</small><strong>${running}</strong></div></div>
-      <div class="summary-item"><span class="summary-icon neutral">${icon('stop')}</span><div><small>Kapalı</small><strong>${stopped}</strong></div></div>
-      <div class="summary-item"><span class="summary-icon ${problem ? 'red' : 'green'}">${icon(problem ? 'alert' : 'check')}</span><div><small>Uyarı</small><strong>${problem}</strong></div></div>
+    <section class="summary-strip" aria-label="${esc(t('dashboard.botSummaryAria'))}">
+      <div class="summary-item"><span class="summary-icon">${icon('bot')}</span><div><small>${t('dashboard.total')}</small><strong>${state.bots.length}</strong></div></div>
+      <div class="summary-item"><span class="summary-icon green">${icon('play')}</span><div><small>${t('dashboard.running')}</small><strong>${running}</strong></div></div>
+      <div class="summary-item"><span class="summary-icon neutral">${icon('stop')}</span><div><small>${t('dashboard.offline')}</small><strong>${stopped}</strong></div></div>
+      <div class="summary-item"><span class="summary-icon ${problem ? 'red' : 'green'}">${icon(problem ? 'alert' : 'check')}</span><div><small>${t('dashboard.alerts')}</small><strong>${problem}</strong></div></div>
     </section>
     <section class="content-section">
-      <div class="section-head compact"><div><span class="section-kicker">INSTANCES</span><h2>Botlar</h2><p>Python ve Node.js container'larını tek yerden yönet.</p></div><button class="btn quiet" id="dashRefresh">${icon('refresh')} Yenile</button></div>
+      <div class="section-head compact"><div><span class="section-kicker">INSTANCES</span><h2>${t('dashboard.botsTitle')}</h2><p>${t('dashboard.botsText')}</p></div><button class="btn quiet" id="dashRefresh">${icon('refresh')} ${t('actions.refresh')}</button></div>
       ${botCards(state.bots)}
     </section>`;
   wireBotCards();
@@ -392,9 +785,9 @@ function renderDashboard() {
 }
 
 function renderBots() {
-  header('Botlar', 'Discord ve Telegram bot container’larını yönet.');
+  header(t('nav.bots'), t('bots.subtitle'));
   const running = state.bots.filter(b => b.status === 'running').length;
-  $('#content').innerHTML = `<section class="page-intro"><div><span class="section-kicker">INSTANCES</span><h2>Bot altyapın</h2><p>${state.bots.length} instance · ${running} aktif · Docker ile birbirinden izole.</p></div><button class="btn primary" id="botsNew">${icon('plus')} Yeni Bot</button></section>${botCards(state.bots)}`;
+  $('#content').innerHTML = `<section class="page-intro"><div><span class="section-kicker">INSTANCES</span><h2>${t('bots.title')}</h2><p>${t('bots.summary', { total: state.bots.length, running })}</p></div><button class="btn primary" id="botsNew">${icon('plus')} ${t('actions.newBot')}</button></section>${botCards(state.bots)}`;
   $('#botsNew')?.addEventListener('click', openNewBot);
   wireBotCards();
 }
@@ -431,7 +824,7 @@ async function createBot(e) {
   try {
     const d = await api('/api/bots', { method: 'POST', body: payload });
     $('#botDialog').close();
-    toast('Bot oluşturuldu. Dosyaları yükledikten sonra Başlat diyebilirsin.');
+    toast(t('toast.botCreated'));
     await loadBots();
     openBot(d.bot.id);
   } catch (err) { toast(err.message, true); }
@@ -451,11 +844,11 @@ async function openBot(id) {
 
 function tabDef() {
   return [
-    ['overview', 'dashboard', 'Genel'],
-    ['console', 'terminal', 'Console'],
-    ['files', 'folder', 'Dosyalar'],
-    ['env', 'key', 'Variables'],
-    ['settings', 'settings', 'Startup & Ayarlar'],
+    ['overview', 'dashboard', t('tabs.overview')],
+    ['console', 'terminal', t('tabs.console')],
+    ['files', 'folder', t('tabs.files')],
+    ['env', 'key', t('tabs.variables')],
+    ['settings', 'settings', t('tabs.startupSettings')],
   ];
 }
 
@@ -473,9 +866,9 @@ function botDetailShell(inner) {
         </div>
       </div>
       <div class="action-row">
-        <button class="btn success" data-action="start">${icon('play')} Başlat</button>
-        <button class="btn" data-action="restart">${icon('restart')} Restart</button>
-        <button class="btn" data-action="stop">${icon('stop')} Durdur</button>
+        <button class="btn success" data-action="start">${icon('play')} ${t('actions.start')}</button>
+        <button class="btn" data-action="restart">${icon('restart')} ${t('actions.restart')}</button>
+        <button class="btn" data-action="stop">${icon('stop')} ${t('actions.stop')}</button>
       </div>
     </section>
     <div class="tabs detail-tabs">${tabDef().map(([k, i, v]) => `<button class="tab ${state.tab === k ? 'active' : ''}" data-tab="${k}">${icon(i)}<span>${v}</span></button>`).join('')}</div>
@@ -498,8 +891,8 @@ async function renderBotDetail() {
   let inner = '';
   if (state.tab === 'overview') inner = overviewHTML();
   else if (state.tab === 'console') inner = consoleHTML();
-  else if (state.tab === 'files') inner = '<div id="filesRoot"><div class="empty">Dosyalar yükleniyor...</div></div>';
-  else if (state.tab === 'env') inner = '<div id="envRoot"><div class="empty">Variables yükleniyor...</div></div>';
+  else if (state.tab === 'files') inner = `<div id="filesRoot"><div class="empty">${t('detail.filesLoading')}</div></div>`;
+  else if (state.tab === 'env') inner = `<div id="envRoot"><div class="empty">${t('detail.variablesLoading')}</div></div>`;
   else inner = settingsHTML();
 
   $('#content').innerHTML = botDetailShell(inner);
@@ -517,36 +910,36 @@ async function renderBotDetail() {
 
 function stateNoteHTML() {
   const s = state.bot.state || {};
-  if (s.oom_killed) return `<div class="state-note error">${icon('alert')} Container RAM limiti nedeniyle sonlandırılmış (OOM). RAM limitini yükselt veya botun bellek kullanımını azalt.</div>`;
+  if (s.oom_killed) return `<div class="state-note error">${icon('alert')} ${t('detail.oom')}</div>`;
   if (typeof s.exit_code === 'number' && s.exit_code > 0 && state.bot.status !== 'running') {
-    return `<div class="state-note error">Son çıkış kodu: <b>${s.exit_code}</b>${s.error ? ` · ${esc(s.error)}` : ''}. Console sekmesindeki logları kontrol et.</div>`;
+    return `<div class="state-note error">${t('detail.lastExit', { code: `<b>${s.exit_code}</b>`, error: s.error ? ` · ${esc(s.error)}` : '' })}</div>`;
   }
-  if (state.bot.status === 'running') return `<div class="state-note">Container aktif. Dependency dosyası değişirse sonraki restart/start sırasında otomatik olarak tekrar kurulur.</div>`;
-  return `<div class="state-note">Bot kapalı. Dosyalarını yükledikten sonra <b>Başlat</b> dediğinde startup pipeline otomatik çalışır.</div>`;
+  if (state.bot.status === 'running') return `<div class="state-note">${t('detail.runningNote')}</div>`;
+  return `<div class="state-note">${t('detail.offlineNote')}</div>`;
 }
 
 function overviewHTML() {
   const b = state.bot;
   return `<div class="overview-grid">
     <div class="card premium-card">
-      <div class="card-head"><div><span class="section-kicker">REALTIME</span><h3>Canlı kaynaklar</h3></div><span class="card-live"><span class="live-pulse"></span>5 sn</span></div>
+      <div class="card-head"><div><span class="section-kicker">REALTIME</span><h3>${t('overview.liveResources')}</h3></div><span class="card-live"><span class="live-pulse"></span>${t('overview.live5s')}</span></div>
       <div class="card-body">
         <div class="metrics">
-          <div class="metric"><div class="metric-top"><span>Durum</span><span class="metric-icon">${icon('activity')}</span></div><b id="mStatus">${statusLabel(b.status)}</b><small>Container state</small></div>
-          <div class="metric"><div class="metric-top"><span>CPU</span><span class="metric-icon">${icon('cpu')}</span></div><b id="mCPU">—</b><small>Anlık kullanım</small></div>
-          <div class="metric"><div class="metric-top"><span>RAM</span><span class="metric-icon">${icon('memory')}</span></div><b id="mRAM">—</b><small>Limit ${b.memory_mb} MB</small></div>
-          <div class="metric"><div class="metric-top"><span>Network</span><span class="metric-icon">${icon('network')}</span></div><b id="mNET">—</b><small>RX / TX</small></div>
+          <div class="metric"><div class="metric-top"><span>${t('overview.status')}</span><span class="metric-icon">${icon('activity')}</span></div><b id="mStatus">${statusLabel(b.status)}</b><small>Container state</small></div>
+          <div class="metric"><div class="metric-top"><span>CPU</span><span class="metric-icon">${icon('cpu')}</span></div><b id="mCPU">—</b><small>${t('overview.currentUsage')}</small></div>
+          <div class="metric"><div class="metric-top"><span>RAM</span><span class="metric-icon">${icon('memory')}</span></div><b id="mRAM">—</b><small>${t('overview.limit', { value: b.memory_mb })}</small></div>
+          <div class="metric"><div class="metric-top"><span>${t('overview.network')}</span><span class="metric-icon">${icon('network')}</span></div><b id="mNET">—</b><small>RX / TX</small></div>
         </div>
         <div id="stateNote">${stateNoteHTML()}</div>
       </div>
     </div>
     <div class="card premium-card pipeline-card">
-      <div class="card-head"><div><span class="section-kicker">AUTOMATION</span><h3>Startup pipeline</h3></div><button class="btn small quiet" id="goStartup">${icon('settings')} Düzenle</button></div>
+      <div class="card-head"><div><span class="section-kicker">AUTOMATION</span><h3>${t('overview.startupPipeline')}</h3></div><button class="btn small quiet" id="goStartup">${icon('settings')} ${t('actions.edit')}</button></div>
       <div class="card-body">
         <div class="pipeline-list">
-          <div class="pipeline-row"><div class="pipeline-step"><span>01</span>${icon('box')}</div><div class="pipeline-info"><b>Runtime hazırlanır</b><p>${esc(runtimeLabel(b.runtime))}${b.runtime === 'python' ? ' · izole per-bot venv' : ' · izole node_modules'}</p></div></div>
-          <div class="pipeline-row"><div class="pipeline-step"><span>02</span>${icon('package')}</div><div class="pipeline-info"><b>Dependencies kurulur</b><code>${esc(b.install_command || 'Kurulum adımı yok')}</code></div></div>
-          <div class="pipeline-row"><div class="pipeline-step"><span>03</span>${icon('play')}</div><div class="pipeline-info"><b>${esc(b.main_file)} başlatılır</b><code>${esc(b.startup)}</code></div></div>
+          <div class="pipeline-row"><div class="pipeline-step"><span>01</span>${icon('box')}</div><div class="pipeline-info"><b>${t('pipeline.runtimePrepared')}</b><p>${esc(runtimeLabel(b.runtime))}${b.runtime === 'python' ? ` · ${t('overview.isolatedVenv')}` : ` · ${t('overview.isolatedNodeModules')}`}</p></div></div>
+          <div class="pipeline-row"><div class="pipeline-step"><span>02</span>${icon('package')}</div><div class="pipeline-info"><b>${t('pipeline.dependenciesInstalled')}</b><code>${esc(b.install_command || t('pipeline.noInstallStep'))}</code></div></div>
+          <div class="pipeline-row"><div class="pipeline-step"><span>03</span>${icon('play')}</div><div class="pipeline-info"><b>${t('pipeline.fileStarted', { file: esc(b.main_file) })}</b><code>${esc(b.startup)}</code></div></div>
         </div>
       </div>
     </div>
@@ -578,27 +971,33 @@ async function loadStats() {
 }
 
 async function botAction(action) {
-  const labels = { start: 'Bot başlatılıyor...', restart: 'Bot yeniden başlatılıyor...', stop: 'Bot durduruluyor...', rebuild: 'Container yeniden oluşturuluyor...', reinstall: 'Dependencies yeniden kurulacak...' };
+  const labels = {
+    start: t('botAction.starting'),
+    restart: t('botAction.restarting'),
+    stop: t('botAction.stopping'),
+    rebuild: t('botAction.rebuilding'),
+    reinstall: t('botAction.reinstalling'),
+  };
   try {
-    toast(labels[action] || 'İşlem uygulanıyor...');
+    toast(labels[action] || t('botAction.applying'));
     await api(`/api/bots/${state.bot.id}/action`, { method: 'POST', body: { action } });
     await Promise.all([refreshCurrentBot(), loadBots()]);
     renderBotDetail();
-    toast(action === 'reinstall' ? 'Dependency kurulumu tetiklendi. Console’dan takip edebilirsin.' : 'İşlem tamamlandı.');
+    toast(action === 'reinstall' ? t('botAction.reinstallDone') : t('botAction.done'));
   } catch (err) { toast(err.message, true); }
 }
 
 function consoleHTML() {
   return `<div class="console-card">
     <div class="console-toolbar">
-      <div class="console-title"><span class="terminal-lights"><i></i><i></i><i></i></span><span class="dot ${state.bot.status === 'running' ? 'ok' : ''}"></span>${icon('terminal')}<span>Live Console</span><small>${esc(state.bot.name)}</small></div>
-      <div class="console-tools"><button class="btn" id="clearConsole">${icon('trash')}<span>Temizle</span></button><button class="btn" id="reinstallConsole">${icon('package')}<span>Dependencies</span></button></div>
+      <div class="console-title"><span class="terminal-lights"><i></i><i></i><i></i></span><span class="dot ${state.bot.status === 'running' ? 'ok' : ''}"></span>${icon('terminal')}<span>${t('console.live')}</span><small>${esc(state.bot.name)}</small></div>
+      <div class="console-tools"><button class="btn" id="clearConsole">${icon('trash')}<span>${t('console.clear')}</span></button><button class="btn" id="reinstallConsole">${icon('package')}<span>${t('console.dependencies')}</span></button></div>
     </div>
-    <div id="console" class="console"><span class="console-line-system">eLite CP console bağlanıyor...</span>\n</div>
+    <div id="console" class="console"><span class="console-line-system">${t('console.connecting')}</span>\n</div>
     <form id="execForm" class="console-command">
       <span class="console-prompt">$</span>
-      <input id="execInput" autocomplete="off" spellcheck="false" placeholder="Komut çalıştır · pip list, python --version, ls -la ...">
-      <button class="btn primary">${icon('send')}<span>Çalıştır</span></button>
+      <input id="execInput" autocomplete="off" spellcheck="false" placeholder="${esc(t('console.placeholder'))}">
+      <button class="btn primary">${icon('send')}<span>${t('actions.run')}</span></button>
     </form>
   </div>`;
 }
@@ -626,7 +1025,7 @@ function startConsole() {
   state.console = es;
   es.onmessage = e => appendConsole(e.data.replaceAll('\\n', '\n'));
   es.addEventListener('system', e => appendConsole(`\n[eLite CP] ${e.data}\n`, e.data.toLowerCase().includes('killed') || e.data.toLowerCase().includes('exit 1') ? 'error' : 'system'));
-  es.onerror = () => appendConsole('\n[eLite CP] Console bağlantısı beklemede; container başlatıldığında tekrar bağlanır.\n', 'system');
+  es.onerror = () => appendConsole(`\n[eLite CP] ${t('console.waiting')}\n`, 'system');
   $('#execForm')?.addEventListener('submit', execCommand);
   $('#clearConsole')?.addEventListener('click', () => { if ($('#console')) $('#console').textContent = ''; });
   $('#reinstallConsole')?.addEventListener('click', () => botAction('reinstall'));
@@ -641,7 +1040,7 @@ async function execCommand(e) {
   input.value = '';
   try {
     const d = await api(`/api/bots/${state.bot.id}/exec`, { method: 'POST', body: { command: cmd } });
-    appendConsole((d.output || d.error || '(çıktı yok)') + '\n', d.ok ? '' : 'error');
+    appendConsole((d.output || d.error || t('console.noOutput')) + '\n', d.ok ? '' : 'error');
   } catch (err) { appendConsole(err.message + '\n', 'error'); }
 }
 
@@ -659,22 +1058,23 @@ function parentPath(p) { const a = p.split('/').filter(Boolean); a.pop(); return
 function renderFiles(files) {
   const root = $('#filesRoot');
   if (!root) return;
+  const dateLocale = state.locale === 'tr' ? 'tr-TR' : 'en-US';
   root.innerHTML = `
-    <div id="dropzone" class="dropzone"><div class="dropzone-inner">${icon('upload')} ZIP veya dosyaları buraya bırak · ZIP güvenli şekilde otomatik açılır</div></div>
+    <div id="dropzone" class="dropzone"><div class="dropzone-inner">${icon('upload')} ${t('files.dropzone')}</div></div>
     <div class="file-toolbar">
       <div class="breadcrumb">/${esc(state.filePath)}</div>
-      ${state.filePath ? `<button class="btn small ghost" id="upDir">${icon('arrow-up')} Üst Dizin</button>` : ''}
-      <button class="btn small ghost" id="newFile">${icon('file-plus')} Dosya</button>
-      <button class="btn small ghost" id="newDir">${icon('folder-plus')} Klasör</button>
-      <label class="btn small primary" style="display:inline-flex;cursor:pointer">${icon('upload')} Yükle<input id="fileUpload" type="file" multiple hidden></label>
+      ${state.filePath ? `<button class="btn small ghost" id="upDir">${icon('arrow-up')} ${t('actions.upDirectory')}</button>` : ''}
+      <button class="btn small ghost" id="newFile">${icon('file-plus')} ${t('actions.file')}</button>
+      <button class="btn small ghost" id="newDir">${icon('folder-plus')} ${t('actions.folder')}</button>
+      <label class="btn small primary" style="display:inline-flex;cursor:pointer">${icon('upload')} ${t('actions.upload')}<input id="fileUpload" type="file" multiple hidden></label>
     </div>
     <div class="file-list">${files.length ? files.map(f => `
       <div class="file-row">
         <div class="file-name">${icon(f.is_dir ? 'folder' : 'file')}<button data-open-file="${esc(f.path)}" data-dir="${f.is_dir}">${esc(f.name)}</button></div>
         <div class="file-dim">${f.is_dir ? '—' : formatBytes(f.size)}</div>
-        <div class="file-dim">${new Date(f.modified_at).toLocaleString('tr-TR')}</div>
-        <div class="file-actions"><button class="btn small danger" data-delete-file="${esc(f.path)}" aria-label="Sil">${icon('trash')}</button></div>
-      </div>`).join('') : '<div class="empty">Bu klasör boş.</div>'}</div>`;
+        <div class="file-dim">${new Date(f.modified_at).toLocaleString(dateLocale)}</div>
+        <div class="file-actions"><button class="btn small danger" data-delete-file="${esc(f.path)}" aria-label="${esc(t('actions.delete'))}">${icon('trash')}</button></div>
+      </div>`).join('') : `<div class="empty">${t('files.empty')}</div>`}</div>`;
 
   $('#upDir')?.addEventListener('click', () => { state.filePath = parentPath(state.filePath); loadFiles(); });
   $$('[data-open-file]').forEach(b => b.addEventListener('click', () => b.dataset.dir === 'true' ? (state.filePath = b.dataset.openFile, loadFiles()) : openEditor(b.dataset.openFile)));
@@ -694,9 +1094,9 @@ async function uploadSelected(files) {
   [...files].forEach(f => fd.append('files', f));
   fd.append('path', state.filePath);
   try {
-    toast(`${files.length} dosya yükleniyor...`);
+    toast(t('files.uploading', { count: files.length }));
     await api(`/api/bots/${state.bot.id}/upload`, { method: 'POST', body: fd });
-    toast('Dosyalar yüklendi. Dependency dosyası değiştiyse sonraki start/restart otomatik kuracak.');
+    toast(t('files.uploaded'));
     loadFiles();
   } catch (err) { toast(err.message, true); }
 }
@@ -716,13 +1116,13 @@ async function saveEditor() {
   try {
     await api(`/api/bots/${state.bot.id}/file?path=${encodeURIComponent(state.editorPath)}`, { method: 'PUT', body: { content: $('#fileEditor').value } });
     $('#editorDialog').close();
-    toast('Dosya kaydedildi.');
+    toast(t('files.saved'));
     loadFiles();
   } catch (err) { toast(err.message, true); }
 }
 
 async function newFile() {
-  const name = prompt('Dosya adı (örn. bot.py):');
+  const name = prompt(t('files.filePrompt'));
   if (!name) return;
   const p = [state.filePath, name].filter(Boolean).join('/');
   state.editorPath = p;
@@ -733,7 +1133,7 @@ async function newFile() {
 }
 
 async function newDir() {
-  const name = prompt('Klasör adı:');
+  const name = prompt(t('files.folderPrompt'));
   if (!name) return;
   const p = [state.filePath, name].filter(Boolean).join('/');
   try { await api(`/api/bots/${state.bot.id}/mkdir`, { method: 'POST', body: { path: p } }); loadFiles(); }
@@ -741,8 +1141,8 @@ async function newDir() {
 }
 
 async function deletePath(path) {
-  if (!confirm(`Silinsin mi?\n${path}`)) return;
-  try { await api(`/api/bots/${state.bot.id}/file?path=${encodeURIComponent(path)}`, { method: 'DELETE' }); toast('Silindi.'); loadFiles(); }
+  if (!confirm(t('files.deleteConfirm', { path }))) return;
+  try { await api(`/api/bots/${state.bot.id}/file?path=${encodeURIComponent(path)}`, { method: 'DELETE' }); toast(t('files.deleted')); loadFiles(); }
   catch (err) { toast(err.message, true); }
 }
 
@@ -754,11 +1154,11 @@ async function loadEnv() {
 function renderEnv(env) {
   const root = $('#envRoot');
   root.innerHTML = `<div class="card">
-    <div class="card-head"><h3>Environment Variables</h3><button class="btn small ghost" id="addEnv">${icon('plus')} Variable</button></div>
+    <div class="card-head"><h3>${t('env.title')}</h3><button class="btn small ghost" id="addEnv">${icon('plus')} ${t('env.variable')}</button></div>
     <div class="card-body">
-      <div class="state-note" style="margin-top:0;margin-bottom:13px">Discord / Telegram token gibi secret değerleri burada tutabilirsin. Kaydedildiğinde container environment'ına aktarılır.</div>
+      <div class="state-note" style="margin-top:0;margin-bottom:13px">${t('env.note')}</div>
       <div id="envList" class="env-list">${env.length ? env.map(e => envRow(e.key, e.value)).join('') : envRow('', '')}</div>
-      <div class="settings-actions"><button class="btn primary" id="saveEnv">${icon('save')} Kaydet & Rebuild</button></div>
+      <div class="settings-actions"><button class="btn primary" id="saveEnv">${icon('save')} ${t('env.saveRebuild')}</button></div>
     </div>
   </div>`;
   $('#addEnv').addEventListener('click', () => { $('#envList').insertAdjacentHTML('beforeend', envRow('', '')); wireEnvRemove(); });
@@ -767,8 +1167,9 @@ function renderEnv(env) {
 }
 
 function envRow(k, v) {
-  return `<div class="env-row"><input class="env-key mono" placeholder="TELEGRAM_TOKEN" value="${esc(k)}"><input class="env-value mono" type="password" placeholder="değer" value="${esc(v)}"><button type="button" class="env-remove" aria-label="Sil">${icon('trash')}</button></div>`;
+  return `<div class="env-row"><input class="env-key mono" placeholder="TELEGRAM_TOKEN" value="${esc(k)}"><input class="env-value mono" type="password" placeholder="${esc(t('env.value'))}" value="${esc(v)}"><button type="button" class="env-remove" aria-label="${esc(t('actions.delete'))}">${icon('trash')}</button></div>`;
 }
+
 function wireEnvRemove() { $$('.env-remove').forEach(b => { b.onclick = () => b.parentElement.remove(); }); }
 
 async function saveEnv() {
@@ -776,7 +1177,7 @@ async function saveEnv() {
   try {
     await api(`/api/bots/${state.bot.id}/env`, { method: 'PUT', body: { env } });
     await refreshCurrentBot();
-    toast('Variables kaydedildi ve container güncellendi.');
+    toast(t('env.saved'));
     renderBotDetail();
   } catch (err) { toast(err.message, true); }
 }
@@ -785,9 +1186,9 @@ function settingsHTML() {
   const b = state.bot;
   return `<form id="settingsForm" class="settings-stack">
     <section class="card settings-section">
-      <div class="settings-section-title">${icon('bot')} Genel & Kaynaklar</div>
+      <div class="settings-section-title">${icon('bot')} ${t('settings.generalResources')}</div>
       <div class="settings-grid">
-        <label>Bot adı<input name="name" maxlength="64" value="${esc(b.name)}"></label>
+        <label>${t('settings.botName')}<input name="name" maxlength="64" value="${esc(b.name)}"></label>
         <label>Runtime<input value="${runtimeLabel(b.runtime)}" disabled></label>
         <label>RAM (MB)<input type="number" name="memory_mb" min="64" max="32768" value="${b.memory_mb}"></label>
         <label>CPU<input type="number" step="0.1" min="0.1" max="32" name="cpus" value="${b.cpus}"></label>
@@ -795,24 +1196,24 @@ function settingsHTML() {
     </section>
 
     <section class="card settings-section">
-      <div class="settings-section-title">${icon('workflow')} Startup Planı</div>
+      <div class="settings-section-title">${icon('workflow')} ${t('settings.startupPlan')}</div>
       <div class="settings-grid">
-        <label>Dependency dosyası<input name="dependency_file" value="${esc(b.dependency_file || '')}" placeholder="requirements.txt"><span class="field-help">Dosya değiştiğinde dependency kurulumu otomatik yeniden çalışır.</span></label>
-        <label>Ana dosya<input name="main_file" value="${esc(b.main_file || '')}" placeholder="bot.py"><span class="field-help">Botu gerçekten çalıştıran giriş dosyası.</span></label>
+        <label>${t('fields.dependencyFile')}<input name="dependency_file" value="${esc(b.dependency_file || '')}" placeholder="requirements.txt"><span class="field-help">${t('settings.dependencyHelp')}</span></label>
+        <label>${t('fields.mainFile')}<input name="main_file" value="${esc(b.main_file || '')}" placeholder="bot.py"><span class="field-help">${t('settings.mainFileHelp')}</span></label>
       </div>
-      <label style="margin-top:14px">Kurulum komutu<textarea class="mono" name="install_command" rows="3" spellcheck="false">${esc(b.install_command || '')}</textarea><span class="field-help">Örn: <code>python -m pip install -r {{dependency_file}}</code></span></label>
-      <label style="margin-top:14px">Startup komutu<textarea class="mono" name="startup" rows="3" spellcheck="false">${esc(b.startup)}</textarea><span class="field-help">Örn: <code>python {{main_file}}</code>. Önce dependency adımı, sonra bu komut çalışır.</span></label>
+      <label style="margin-top:14px">${t('fields.installCommand')}<textarea class="mono" name="install_command" rows="3" spellcheck="false">${esc(b.install_command || '')}</textarea><span class="field-help">${t('settings.example')} <code>python -m pip install -r {{dependency_file}}</code></span></label>
+      <label style="margin-top:14px">${t('fields.startupCommand')}<textarea class="mono" name="startup" rows="3" spellcheck="false">${esc(b.startup)}</textarea><span class="field-help">${t('settings.example')} <code>python {{main_file}}</code>. ${t('settings.startupHelp')}</span></label>
       <div class="settings-actions">
-        <button type="button" class="btn soft" id="reinstallDeps">${icon('package')} Dependencies'i Yeniden Kur</button>
-        <button type="button" class="btn ghost" id="rebuildBot">${icon('refresh')} Container Rebuild</button>
-        <button class="btn primary">${icon('save')} Kaydet & Rebuild</button>
+        <button type="button" class="btn soft" id="reinstallDeps">${icon('package')} ${t('settings.reinstallDependencies')}</button>
+        <button type="button" class="btn ghost" id="rebuildBot">${icon('refresh')} ${t('settings.rebuildContainer')}</button>
+        <button class="btn primary">${icon('save')} ${t('settings.saveRebuild')}</button>
       </div>
     </section>
 
     <section class="danger-zone">
-      <h4>Tehlikeli Alan</h4>
-      <p>Botu, Docker container'ını ve botun tüm dosyalarını kalıcı olarak siler.</p>
-      <button type="button" id="deleteBot" class="btn danger">${icon('trash')} Botu Sil</button>
+      <h4>${t('settings.dangerZone')}</h4>
+      <p>${t('settings.dangerText')}</p>
+      <button type="button" id="deleteBot" class="btn danger">${icon('trash')} ${t('settings.deleteBot')}</button>
     </section>
   </form>`;
 }
@@ -840,18 +1241,18 @@ async function saveSettings(e) {
     const d = await api(`/api/bots/${state.bot.id}`, { method: 'PUT', body: payload });
     state.bot = d.bot;
     await loadBots();
-    toast('Startup planı ve ayarlar kaydedildi.');
+    toast(t('settings.saved'));
     renderBotDetail();
   } catch (err) { toast(err.message, true); }
 }
 
 async function deleteBot() {
-  if (!confirm(`${state.bot.name} ve tüm dosyaları kalıcı olarak silinsin mi?`)) return;
+  if (!confirm(t('settings.deleteConfirm', { name: state.bot.name }))) return;
   try {
     await api(`/api/bots/${state.bot.id}`, { method: 'DELETE' });
     state.bot = null;
     await loadBots();
-    toast('Bot silindi.');
+    toast(t('settings.deleted'));
     render();
   } catch (err) { toast(err.message, true); }
 }
