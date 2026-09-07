@@ -1,0 +1,26 @@
+[Unit]
+Description=eLite CP Bot Hosting Control Panel
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=elitecp
+Group=elitecp
+SupplementaryGroups=docker
+EnvironmentFile=-/etc/elitecp/elitecp.env
+ExecStart=/usr/local/bin/elitecp
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/elitecp
+LockPersonality=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target
